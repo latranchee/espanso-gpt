@@ -8,6 +8,9 @@ from dotenv import load_dotenv
 import tkinter as tk
 import threading
 import time
+from action_reader import get_action  # Import our new action reader
+
+DEBUG_MODE = False # Global debug flag
 
 # Ensure stdout is UTF-8 encoded
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf8')
@@ -84,41 +87,81 @@ if not API_KEY:
 # Initialize OpenAI client
 client = OpenAI(api_key=API_KEY)
 
-def get_modified_text(action: str, tone: str, input_text: str, target_language: str) -> str:
+def get_modified_text(action_name: str, tone_filename_base: str, input_text: str, target_language: str) -> str:
+    if DEBUG_MODE:
+        print(f"DEBUG text_processor: Received action_name: {action_name}, tone_filename_base: {tone_filename_base}", file=sys.stderr)
+    
+    # Get the action configuration from JSON
+    action_config = get_action(action_name)
+    if DEBUG_MODE:
+        print(f"DEBUG text_processor: Loaded action config: {action_config}", file=sys.stderr)
+    
+    # Default system message (can be overridden by action config)
     system_message_content = f"You are a versatile AI assistant. Skillfully modify text based on user instructions. Pay close attention to the desired action, tone, and ensure the output is in {target_language}. If the target language is French, use Canadian French unless specified otherwise."
     
-    user_prompt = ""
+    # Override with custom system message if provided in action config
+    if "system_message_template" in action_config:
+        system_message_content = action_config["system_message_template"].format(
+            target_language=target_language
+        )
+    
+    # Get tone instruction from file
+    tone_instruction = ""
+    tone_file_path = os.path.join(os.path.dirname(__file__), "..", "gpt_tools", "tone", f"{tone_filename_base}.txt")
+    if DEBUG_MODE:
+        print(f"DEBUG text_processor: Constructed tone_file_path: {tone_file_path}", file=sys.stderr)
 
-    # Constructing prompts carefully, especially for "Walking on eggshells"
-    if tone == "Walking on eggshells":
-        tone_instruction = "Please be extremely careful, gentle, and overly polite in your response, as if you are walking on eggshells. Ensure the tone is very considerate and cautious."
-    elif tone == "Formal":
-        tone_instruction = "Please ensure the response is in a formal tone."
-    else: # Friendly or default
-        tone_instruction = "Please ensure the response is in a friendly and approachable tone."
+    try:
+        with open(tone_file_path, "r", encoding="utf-8") as f:
+            tone_instruction = f.read().strip()
+        if not tone_instruction:
+            tone_instruction = "Please adopt a neutral tone." # Fallback if file is empty
+            if DEBUG_MODE:
+                print(f"DEBUG text_processor: Tone file was empty, using fallback.", file=sys.stderr)
+    except FileNotFoundError:
+        tone_instruction = f"(Tone file '{tone_filename_base}.txt' not found. Using neutral tone.) Please adopt a neutral tone."
+        if DEBUG_MODE:
+            print(f"DEBUG text_processor: Tone file not found at {tone_file_path}", file=sys.stderr)
+    except Exception as e:
+        tone_instruction = f"(Error reading tone file '{tone_filename_base}.txt': {e}. Using neutral tone.) Please adopt a neutral tone."
+        if DEBUG_MODE:
+            print(f"DEBUG text_processor: Error reading tone file {tone_file_path}: {e}", file=sys.stderr)
+    
+    if DEBUG_MODE:
+        print(f"DEBUG text_processor: Final tone_instruction: {tone_instruction}", file=sys.stderr)
 
-    if action == "Rephrase":
-        user_prompt = f"{tone_instruction} Rephrase the following text in {target_language}: \n\n\"{input_text}\""
-    elif action == "Expand":
-        user_prompt = f"{tone_instruction} Expand on the following text in {target_language}, providing more detail, examples, or explanations as appropriate: \n\n\"{input_text}\""
-    elif action == "Fix grammar":
-        user_prompt = f"{tone_instruction} Correct any grammatical errors, spelling mistakes, and improve the overall clarity of the following text, ensuring the output is in {target_language}. Preserve the original meaning. Text: \n\n\"{input_text}\""
-    elif action == "Translate":
-        user_prompt = f"{tone_instruction} Translate the following text to {target_language}. If the text is already in {target_language} and no other action is implied by the tone, you can politely state that or offer a minor rephrasing. Text: \n\n\"{input_text}\""
-    else:
-        return "Error: Unknown action specified."
+    # Build the prompt using the template from the action config
+    try:
+        user_prompt = action_config["prompt_template"].format(
+            tone_instruction=tone_instruction,
+            target_language=target_language,
+            input_text=input_text
+        )
+    except KeyError as e:
+        return f"Error: Missing field in action config: {e}"
+    except Exception as e:
+        return f"Error formatting prompt template: {e}"
 
     messages = [
         {"role": "system", "content": system_message_content},
         {"role": "user", "content": user_prompt}
     ]
 
+    if DEBUG_MODE:
+        print(f"DEBUG text_processor: Full user_prompt for AI: {user_prompt}", file=sys.stderr)
+        print(f"DEBUG text_processor: System message for AI: {system_message_content}", file=sys.stderr)
+
+    # Get model parameters from action config
+    model = action_config.get("model", "gpt-4o-mini")
+    max_tokens = action_config.get("max_tokens", 2000)
+    temperature = action_config.get("temperature", 0.6)
+
     try:
         completion = client.chat.completions.create(
-            model="gpt-4o-mini",
+            model=model,
             messages=messages,
-            max_tokens=2000, # Increased max_tokens for potentially longer expansions/translations
-            temperature=0.6
+            max_tokens=max_tokens,
+            temperature=temperature
         )
         content = completion.choices[0].message.content.strip()
         # Remove leading/trailing quotes if present

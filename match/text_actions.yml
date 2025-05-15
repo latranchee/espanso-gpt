@@ -4,6 +4,18 @@ matches:
     vars:
       - name: "clip_content" # Variable to hold clipboard content, name is quoted
         type: "clipboard"  # Type is quoted
+      - name: "tone_list_output" # Script variable for dynamic tones
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/list_tone_files.py"
+      - name: "action_list_output" # New script variable for dynamic actions
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/list_action_files.py"
       - name: form
         type: form
         params:
@@ -25,21 +37,14 @@ matches:
             action_choice:
               type: list
               default: Rephrase
-              values:
-                - Rephrase
-                - Expand
-                - "Fix grammar"
-                - Translate
+              values: "{{action_list_output}}" # Use dynamic actions list
             tone_choice:
               type: list
-              default: Friendly
-              values:
-                - Friendly
-                - Formal
-                - "Walking on eggshells"
+              default: Friendly # Default tone
+              values: "{{tone_list_output}}" # Use dynamic tones list
             language_choice: # New field for language
               type: list
-              default: English # Default to English
+              default: French # Changed from English to French
               values:
                 - English
                 - French

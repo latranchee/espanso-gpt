@@ -6,7 +6,7 @@ import sys
 # ESPANSO_CONFIG_DIR is an environment variable set by Espanso when running scripts.
 # Fallback to a common relative path if the env var isn't set (e.g., for direct testing, though less reliable).
 CONFIG_DIR = os.environ.get("ESPANSO_CONFIG_DIR", os.path.join(os.path.dirname(__file__), ".."))
-STATE_FILE_NAME = "gpt_form_state.json"
+STATE_FILE_NAME = "gpt_tools/gpt_form_state.json"
 STATE_FILE_PATH = os.path.join(CONFIG_DIR, STATE_FILE_NAME)
 
 def save_state(data):

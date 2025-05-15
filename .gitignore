@@ -2,10 +2,17 @@
 .env
 base.yml
 match/packages/
-faq/*.md
-!faq/sample.md
-context/*.json
+# faq/*.md
+# !faq/sample.md
+gpt_tools/faq/*.md
+!gpt_tools/faq/sample.md
+# context/*.json
+gpt_tools/context/*.json
 .cursor/
 .vscode/
 scripts/__pycache__/
-last_conversation_id.txt 
+last_conversation_id.txt
+
+# Espanso package files and user-specific data
+*.yml.bak
+match/user/ 

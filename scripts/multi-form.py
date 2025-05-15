@@ -6,6 +6,7 @@ import time
 from openai import OpenAI
 import customtkinter
 from dotenv import load_dotenv
+from action_reader import get_task  # Import our new action reader
 
 # New imports for screenshot functionality
 import tempfile
@@ -17,7 +18,7 @@ from PIL import Image, UnidentifiedImageError
 # Assuming state_io.py is in the same directory or Python's path is configured.
 from state_io import load_state, delete_state, STATE_FILE_PATH, CONFIG_DIR
 
-DEBUG_MODE = False # Ensure this is True for detailed screenshot debugging
+DEBUG_MODE = False # Disable debug mode to prevent Espanso rendering errors
 
 # Ensure stdout handles UTF-8 for Espanso
 if sys.stdout.encoding != 'utf-8':
@@ -46,10 +47,10 @@ spinner_chars = ["⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿"]
 loading_thread = None
 
 # --- Constants for Conversation History ---
-CONTEXT_DIR_NAME = "context"
+CONTEXT_DIR_NAME = "gpt_tools/context"
 CONTEXT_DIR_PATH = os.path.join(CONFIG_DIR, CONTEXT_DIR_NAME)
 LAST_CONV_ID_FILENAME = "last_conversation_id.txt"
-LAST_CONV_ID_FILEPATH = os.path.join(CONFIG_DIR, LAST_CONV_ID_FILENAME)
+LAST_CONV_ID_FILEPATH = os.path.join(CONFIG_DIR, "gpt_tools", LAST_CONV_ID_FILENAME)
 
 # --- GUI Helper Functions (show_tk_loading_popup_in_thread, setup_root_window, destroy_root_window, etc.) ---
 # These functions (_tk_spinner_update, show_tk_loading_popup_in_thread, setup_root_window, destroy_root_window, 
@@ -335,7 +336,10 @@ def update_last_conversation_id(conversation_id):
         if DEBUG_MODE: sys.stderr.write(f"ERROR: Could not update last_conversation_id.txt: {e}\n")
 
 def main_logic():
-    loaded_form_state = load_state() # This is from gpt_form_state.json (temporary)
+    loaded_form_state = load_state() # This is from gpt_tools/gpt_form_state.json (temporary)
+    if DEBUG_MODE:
+        sys.stderr.write(f"DEBUG gpt_chat.py: Loaded state: {loaded_form_state}\n")
+
     if DEBUG_MODE: # Minimal loaded state log to keep focus on screenshot part for now
         try: 
             debug_file_target = os.path.join(os.path.expanduser("~"), "espanso_debug_paths.txt")
@@ -382,20 +386,64 @@ def main_logic():
         selected_faq_filename = loaded_form_state.get("selected_faq", "None")
         include_screenshot_str = loaded_form_state.get("include_screenshot", "false")
         include_screenshot = include_screenshot_str.lower() == 'true'
+        desired_answer_sketch = loaded_form_state.get("desired_answer_sketch", "")
 
-        # --- Construct final_system_message_for_api based on current form inputs for a NEW conversation ---
+        # Get task configuration from JSON
+        task_config = get_task(selected_task_objective)
+        if DEBUG_MODE:
+            sys.stderr.write(f"DEBUG: Loaded task config for '{selected_task_objective}': {task_config}\n")
+
+        # --- Construct final_system_message_for_api based on task configuration ---
         faq_content_for_prompt = ""
         if selected_faq_filename and selected_faq_filename.strip().lower() not in ["none", ""]:
-            faq_file_path = os.path.join(CONFIG_DIR, "faq", selected_faq_filename) # Use CONFIG_DIR for faq path
+            faq_file_path = os.path.join(CONFIG_DIR, "gpt_tools", "faq", selected_faq_filename) # Updated path
             try: 
-                with open(faq_file_path, 'r', encoding='utf-8') as f_faq: faq_data = f_faq.read(); faq_content_for_prompt = "\n\nFAQ: " + faq_data
-            except: faq_content_for_prompt = f" (FAQ '{selected_faq_filename}' not found.)"
-        persona_specific_instructions = ""
-        if selected_task_objective == "Speech-to-Text Editor": persona_specific_instructions = SPEECH_TO_TEXT_EDITOR_INSTRUCTIONS
-        else: persona_specific_instructions = f"Task: {selected_task_objective}. Language: {selected_language}."
-        if selected_task_objective == "Customer Support Task": persona_specific_instructions += f" Sentiment: {selected_sentiment}. Relation: {selected_relation}."
-        if faq_content_for_prompt and "FAQ: " in faq_content_for_prompt: persona_specific_instructions += faq_content_for_prompt
-        final_system_message_for_api = f"{persona_specific_instructions.strip()}\n\n---\n{base_system_prompt_core}"
+                with open(faq_file_path, 'r', encoding='utf-8') as f_faq: 
+                    faq_data = f_faq.read()
+                    faq_content_for_prompt = f"\n\nFAQ: {faq_data}"
+            except Exception as e:
+                if DEBUG_MODE:
+                    sys.stderr.write(f"DEBUG: Error loading FAQ file: {e}\n")
+                faq_content_for_prompt = f" (FAQ '{selected_faq_filename}' not found.)"
+
+        # Language instruction
+        language_instruction = f"Please respond in {selected_language}."
+        if selected_language == "French":
+            language_instruction = "Please respond in Canadian French."
+
+        # Sentiment instruction
+        sentiment_instruction = ""
+        if task_config.get("sentiment_instructions") and selected_sentiment in task_config["sentiment_instructions"]:
+            sentiment_instruction = task_config["sentiment_instructions"][selected_sentiment]
+        
+        # Relation instruction
+        relation_instruction = ""
+        if task_config.get("relation_instructions") and selected_relation in task_config["relation_instructions"]:
+            relation_instruction = task_config["relation_instructions"][selected_relation]
+
+        # Get system message template from task config
+        system_message_template = task_config.get("system_message_template", base_system_prompt_core)
+        
+        # Format the system message with our extracted values
+        try:
+            final_system_message_for_api = system_message_template.format(
+                language_instruction=language_instruction,
+                sentiment_instruction=sentiment_instruction,
+                relation_instruction=relation_instruction,
+                faq_content=faq_content_for_prompt
+            )
+        except KeyError as e:
+            if DEBUG_MODE:
+                sys.stderr.write(f"DEBUG: Error formatting system message template: {e}. Using template as-is.\n")
+            final_system_message_for_api = system_message_template
+        except Exception as e:
+            if DEBUG_MODE:
+                sys.stderr.write(f"DEBUG: Unexpected error formatting system message: {e}. Using base prompt.\n")
+            final_system_message_for_api = f"{base_system_prompt_core}"
+
+        # Ensure base system prompt core is included if it's not already part of the template
+        if base_system_prompt_core not in final_system_message_for_api:
+            final_system_message_for_api = f"{final_system_message_for_api}\n\n---\n{base_system_prompt_core}"
         # --- End system prompt construction ---
 
         conv_messages = [{"role": "system", "content": final_system_message_for_api}]

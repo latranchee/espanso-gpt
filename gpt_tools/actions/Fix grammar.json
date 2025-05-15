@@ -1,0 +1,8 @@
+{
+    "name": "Fix grammar",
+    "requires_second_form": false,
+    "prompt_template": "{tone_instruction} Correct any grammatical errors, spelling mistakes, and improve the overall clarity of the following text, ensuring the output is in {target_language}. Preserve the original meaning. Text: \n\n\"{input_text}\"",
+    "temperature": 0.4,
+    "max_tokens": 2000,
+    "model": "gpt-4o-mini"
+}

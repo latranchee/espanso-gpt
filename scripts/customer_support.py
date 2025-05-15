@@ -5,6 +5,10 @@ import tempfile
 import tkinter as tk
 import threading
 import time
+
+# Enable debug mode for troubleshooting
+DEBUG_MODE = True
+
 try:
     import pyautogui
 except ImportError:
@@ -91,6 +95,10 @@ if __name__ == "__main__":
     loading_thread.start()
     time.sleep(0.3) # Brief pause for popup to appear
 
+    if DEBUG_MODE:
+        print("DEBUG: customer_support.py script started", file=sys.stderr)
+        print(f"DEBUG: Command line args: {sys.argv}", file=sys.stderr)
+
     final_output = "" # Variable to hold the final text to be printed by Espanso
     try:
         # Args: sentiment, relation, selected_faq_filename, target_language, include_screenshot, user_message_text, desired_answer_sketch
@@ -108,6 +116,16 @@ if __name__ == "__main__":
             user_message_from_arg = sys.argv[6]
             desired_answer_sketch_from_arg = sys.argv[7]
 
+            if DEBUG_MODE:
+                print(f"DEBUG: Parsed arguments:", file=sys.stderr)
+                print(f"DEBUG:   sentiment: {sentiment}", file=sys.stderr)
+                print(f"DEBUG:   relation: {relation}", file=sys.stderr)
+                print(f"DEBUG:   selected_faq_filename: {selected_faq_filename}", file=sys.stderr)
+                print(f"DEBUG:   target_language: {target_language}", file=sys.stderr)
+                print(f"DEBUG:   include_screenshot_str: {include_screenshot_str}", file=sys.stderr)
+                print(f"DEBUG:   user_message_from_arg (first 50 chars): {user_message_from_arg[:50]}...", file=sys.stderr)
+                print(f"DEBUG:   desired_answer_sketch_from_arg (first 50 chars): {desired_answer_sketch_from_arg[:50]}...", file=sys.stderr)
+
             include_screenshot = include_screenshot_str.lower() == 'true'
 
             if not user_message_from_arg.strip():
@@ -123,6 +141,8 @@ if __name__ == "__main__":
                 image_message = None # Initialize for payload construction
 
                 if include_screenshot:
+                    if DEBUG_MODE:
+                        print("DEBUG: Taking screenshot...", file=sys.stderr)
                     try:
                         # ... (Full screenshot taking, resizing, optimizing, JPEG conversion logic) ...
                         # This part creates screenshot_path and image_message if successful
@@ -145,26 +165,50 @@ if __name__ == "__main__":
                         temp_screenshot_file = tempfile.NamedTemporaryFile(delete=False, suffix='.png')
                         screenshot_path = temp_screenshot_file.name
                         temp_screenshot_file.close()
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Created temp file for screenshot: {screenshot_path}", file=sys.stderr)
+                        
                         pyautogui.screenshot(screenshot_path)
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Screenshot taken and saved to temp file", file=sys.stderr)
+                        
                         img = Image.open(screenshot_path)
                         original_format = img.format
                         current_mime_type = f"image/{original_format.lower() if original_format else 'png'}"
                         width, height = img.size
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Original screenshot dimensions: {width}x{height}", file=sys.stderr)
+                        
                         new_width = int(width * 0.5); new_height = int(height * 0.5)
                         img = img.resize((new_width, new_height), Image.Resampling.LANCZOS)
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Resized screenshot to: {new_width}x{new_height}", file=sys.stderr)
+                        
                         img.save(screenshot_path, format="PNG", optimize=True)
                         current_mime_type = "image/png"
                         file_size_bytes = os.path.getsize(screenshot_path)
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Saved optimized PNG, size: {file_size_bytes} bytes", file=sys.stderr)
+                        
                         max_size_bytes = 19 * 1024 * 1024
                         if file_size_bytes > max_size_bytes:
-                            print(f"Resized PNG > 19MB. Converting to JPEG.")
+                            if DEBUG_MODE:
+                                print(f"DEBUG: Resized PNG > 19MB. Converting to JPEG.", file=sys.stderr)
                             if img.mode == 'RGBA' or img.mode == 'P': img = img.convert('RGB')
                             img.save(screenshot_path, format="JPEG", quality=85, optimize=True)
                             current_mime_type = "image/jpeg"
+                            if DEBUG_MODE:
+                                print(f"DEBUG: Saved as JPEG, new size: {os.path.getsize(screenshot_path)} bytes", file=sys.stderr)
+                        
                         with open(screenshot_path, "rb") as img_file_data:
                             image_data = img_file_data.read()
                         base64_image = base64.b64encode(image_data).decode("utf-8")
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Converted image to base64, length: {len(base64_image)}", file=sys.stderr)
+                        
                         image_message = {"type": "image_url", "image_url": {"url": f"data:{current_mime_type};base64,{base64_image}"}}
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Created image message for API with MIME type: {current_mime_type}", file=sys.stderr)
                         # --- End of pasted screenshot logic placeholder ---
 
                     except Exception as e_screenshot:
@@ -190,16 +234,24 @@ NEVER ask for more context; Just use your judgment.
                 
                 if selected_faq_filename != "None" and selected_faq_filename.strip() != "":
                     faq_file_path = os.path.join(os.path.dirname(__file__), "..", "markdown", selected_faq_filename)
+                    if DEBUG_MODE:
+                        print(f"DEBUG: Looking for FAQ file at: {faq_file_path}", file=sys.stderr)
                     try:
                         with open(faq_file_path, 'r', encoding='utf-8') as f_faq:
                             faq_content = f_faq.read()
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Successfully loaded FAQ: {selected_faq_filename} ({len(faq_content)} chars)", file=sys.stderr)
                         system_prompt_content += "\n\nFor your reference, here is some relevant FAQ information:\n---\n" + faq_content + """\n--- 
             If the question of the user is in the FAQ, DO NOT DEVIATE from the FAQ.
             If the question is not in the FAQ, answer the question based on your knowledge and the context provided.
             DO NOT make any assumptions about company policy or troubleshooting procedures."""
                     except FileNotFoundError:
+                        if DEBUG_MODE:
+                            print(f"DEBUG: FAQ file not found: {faq_file_path}", file=sys.stderr)
                         system_prompt_content += "\n\n(Note: The selected FAQ file '" + selected_faq_filename + "' was not found.)"
                     except Exception as e_faq:
+                        if DEBUG_MODE:
+                            print(f"DEBUG: Error reading FAQ file: {e_faq}", file=sys.stderr)
                         system_prompt_content += "\n\n(Note: Error reading FAQ file '" + selected_faq_filename + "': " + str(e_faq) + ")"
 
                 main_user_prompt_text = (
@@ -209,6 +261,8 @@ NEVER ask for more context; Just use your judgment.
                 )
 
                 if desired_answer_sketch_from_arg and desired_answer_sketch_from_arg.strip():
+                    if DEBUG_MODE:
+                        print("DEBUG: Adding desired answer sketch to prompt", file=sys.stderr)
                     main_user_prompt_text += (
                         f"\\n\\nIMPORTANT GUIDELINE: Here is a sketch of the desired answer. "
                         f"Use it as a strong inspiration for the tone, content, and key points of your response, "
@@ -221,8 +275,12 @@ NEVER ask for more context; Just use your judgment.
                 user_message_list_content.append({"type": "text", "text": main_user_prompt_text})
 
                 if image_message:
+                    if DEBUG_MODE:
+                        print("DEBUG: Including image message in API request", file=sys.stderr)
                     user_message_list_content.append(image_message)
                 elif screenshot_path:
+                    if DEBUG_MODE:
+                        print("DEBUG: Screenshot path exists but no image message, adding note to text", file=sys.stderr)
                     text_part_found = False
                     for part in user_message_list_content:
                         if part["type"] == "text":
@@ -240,15 +298,39 @@ NEVER ask for more context; Just use your judgment.
                     "temperature": 0.6
                 }
 
+                if DEBUG_MODE:
+                    print(f"DEBUG: API payload prepared:", file=sys.stderr)
+                    print(f"DEBUG:   model: {api_payload['model']}", file=sys.stderr)
+                    print(f"DEBUG:   system message (first 100 chars): {api_payload['messages'][0]['content'][:100]}...", file=sys.stderr)
+                    if isinstance(api_payload['messages'][1]['content'], list):
+                        print(f"DEBUG:   user message is a content list with {len(api_payload['messages'][1]['content'])} parts", file=sys.stderr)
+                        if len(api_payload['messages'][1]['content']) > 0 and api_payload['messages'][1]['content'][0]['type'] == 'text':
+                            print(f"DEBUG:   user text (first 100 chars): {api_payload['messages'][1]['content'][0]['text'][:100]}...", file=sys.stderr)
+                    else:
+                        print(f"DEBUG:   user message (first 100 chars): {api_payload['messages'][1]['content'][:100]}...", file=sys.stderr)
+                    print(f"DEBUG:   max_tokens: {api_payload['max_tokens']}", file=sys.stderr)
+                    print(f"DEBUG:   temperature: {api_payload['temperature']}", file=sys.stderr)
+
+                if DEBUG_MODE:
+                    print("DEBUG: Making API call to OpenAI...", file=sys.stderr)
+                
                 completion = client.chat.completions.create(
                     model=api_payload["model"],
                     messages=api_payload["messages"],
                     max_tokens=api_payload["max_tokens"],
                     temperature=api_payload["temperature"]
                 )
+                
+                if DEBUG_MODE:
+                    print("DEBUG: API call completed successfully", file=sys.stderr)
+                
                 content = completion.choices[0].message.content.strip()
                 if len(content) >= 2 and content.startswith('"') and content.endswith('"'):
                     content = content[1:-1]
+                
+                if DEBUG_MODE:
+                    print(f"DEBUG: API response content (first 100 chars): {content[:100]}...", file=sys.stderr)
+                
                 final_output = content
                 # --- End of main script logic ---
 
@@ -265,5 +347,8 @@ NEVER ask for more context; Just use your judgment.
                 pass # Window might already be destroyed
         if loading_thread.is_alive():
             loading_thread.join(timeout=0.5)
+
+    if DEBUG_MODE:
+        print("DEBUG: Script execution completed, printing final output", file=sys.stderr)
 
     print(final_output)

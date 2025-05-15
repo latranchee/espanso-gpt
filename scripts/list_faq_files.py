@@ -2,8 +2,8 @@
 import os
 import glob
 
-# The script is in <config_root>/scripts/, so markdown folder is ../faq/
-markdown_dir = os.path.join(os.path.dirname(__file__), "..", "faq")
+# The script is in <config_root>/scripts/, so markdown folder is ../gpt_tools/faq/
+markdown_dir = os.path.join(os.path.dirname(__file__), "..", "gpt_tools", "faq")
 
 # Print "None" as the first option for the dropdown
 print("None")

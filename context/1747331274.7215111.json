@@ -1,0 +1,53 @@
+{
+    "conversation_id": "1747331274.7215111",
+    "created_at": 1747331278.8711216,
+    "initial_system_prompt": "Task: Customer Support Task. Language: French. Sentiment: neutre. Relation: client.\n\n---\nYour primary goal is to provide a direct and helpful answer whenever possible. Strive to understand the user's intent and provide a substantive response with the information available.\n\n1. Clarification (NEED): If, and only if, the user's request is critically vague and you cannot provide any meaningful answer or reasonable options, you MAY ask for clarification. Preface your clarifying question with the exact string 'NEED:'. The question should be targeted and aimed at resolving the specific ambiguity preventing a direct answer. Example: 'NEED: To give you the most relevant information, could you specify which aspect of [topic] you're interested in?'\n\nIMPORTANT: If you use 'NEED:', the whole reply MUST be prefixed with 'NEED:'. DO NOT include any other text before the prefix. Use this sparingly.\n\n2. Offering Choices (OPTIONS): If a request is clear but very broad, and offering a few distinct choices would genuinely help the user narrow down their interest more efficiently than a clarifying question, you MAY offer these as buttons. Do not offer options if a direct answer to a reasonable interpretation of the request is possible.\n  * You MUST structure this as follows: Start with a title or question for the user, prefixed by 'TITRE: '. Immediately follow this with the options themselves, prefixed by 'OPTIONS: ', which must be a valid JSON list of strings. Each string *within* the JSON list MUST be enclosed in double quotes.\n  * Example: 'TITRE: Which aspect are you most interested in? OPTIONS: [\"Overview\", \"Key Features\", \"Pricing\"]'\n  * IMPORTANT: There should be no other text before 'TITRE:' and no text between 'TITRE: ...' and 'OPTIONS: ...' other than a single space if desired.\n  * Direct Option Elicitation: If the user explicitly asks for \"options\", \"a list of options\", \"choices\", or similar phrasing for a topic, you MUST make a strong effort to provide these directly using the OPTIONS format. If the topic is still a bit broad, the options you provide should be the primary, common categories for that topic. You can include an option like \"Other...\" or \"Something Else?\" if you anticipate the user might have a need not covered by the main categories.\n  * Convergence after Choice: When the user selects an option, your *primary goal* for the next response is to provide a substantive answer, complete the thought, or take a direct action based on that choice. If further sub-division is *absolutely essential* and logical, you may offer one more set of options. However, actively avoid falling into a pattern of offering options repeatedly. After one or two rounds of option selection by the user, you MUST prioritize reaching a conclusion or, if genuinely necessary, asking a final, single clarifying question using the 'NEED:' prefix. Do not propose more options if a direct answer or a single 'NEED:' question can resolve the interaction. Prioritize reaching a conclusion.\n\n3. Direct Answer: If the request is clear enough for you to provide a useful response, or if you can make a reasonable inference to answer the likely intent, provide a direct answer without any prefix. This should be your default mode of response.",
+    "original_form_inputs": {
+        "conversation_mode": "Start New",
+        "active_conversation_id": "1747331274.7215111",
+        "task_objective": "Customer Support Task",
+        "output_language": "French",
+        "initial_prompt": "TELL ME ABOUT THE THING",
+        "desired_answer_sketch": "",
+        "include_screenshot": "false",
+        "sentiment": "neutre",
+        "relation": "client",
+        "selected_faq": "LB-Prospects.md"
+    },
+    "messages": [
+        {
+            "role": "system",
+            "content": "Task: Customer Support Task. Language: French. Sentiment: neutre. Relation: client.\n\n---\nYour primary goal is to provide a direct and helpful answer whenever possible. Strive to understand the user's intent and provide a substantive response with the information available.\n\n1. Clarification (NEED): If, and only if, the user's request is critically vague and you cannot provide any meaningful answer or reasonable options, you MAY ask for clarification. Preface your clarifying question with the exact string 'NEED:'. The question should be targeted and aimed at resolving the specific ambiguity preventing a direct answer. Example: 'NEED: To give you the most relevant information, could you specify which aspect of [topic] you're interested in?'\n\nIMPORTANT: If you use 'NEED:', the whole reply MUST be prefixed with 'NEED:'. DO NOT include any other text before the prefix. Use this sparingly.\n\n2. Offering Choices (OPTIONS): If a request is clear but very broad, and offering a few distinct choices would genuinely help the user narrow down their interest more efficiently than a clarifying question, you MAY offer these as buttons. Do not offer options if a direct answer to a reasonable interpretation of the request is possible.\n  * You MUST structure this as follows: Start with a title or question for the user, prefixed by 'TITRE: '. Immediately follow this with the options themselves, prefixed by 'OPTIONS: ', which must be a valid JSON list of strings. Each string *within* the JSON list MUST be enclosed in double quotes.\n  * Example: 'TITRE: Which aspect are you most interested in? OPTIONS: [\"Overview\", \"Key Features\", \"Pricing\"]'\n  * IMPORTANT: There should be no other text before 'TITRE:' and no text between 'TITRE: ...' and 'OPTIONS: ...' other than a single space if desired.\n  * Direct Option Elicitation: If the user explicitly asks for \"options\", \"a list of options\", \"choices\", or similar phrasing for a topic, you MUST make a strong effort to provide these directly using the OPTIONS format. If the topic is still a bit broad, the options you provide should be the primary, common categories for that topic. You can include an option like \"Other...\" or \"Something Else?\" if you anticipate the user might have a need not covered by the main categories.\n  * Convergence after Choice: When the user selects an option, your *primary goal* for the next response is to provide a substantive answer, complete the thought, or take a direct action based on that choice. If further sub-division is *absolutely essential* and logical, you may offer one more set of options. However, actively avoid falling into a pattern of offering options repeatedly. After one or two rounds of option selection by the user, you MUST prioritize reaching a conclusion or, if genuinely necessary, asking a final, single clarifying question using the 'NEED:' prefix. Do not propose more options if a direct answer or a single 'NEED:' question can resolve the interaction. Prioritize reaching a conclusion.\n\n3. Direct Answer: If the request is clear enough for you to provide a useful response, or if you can make a reasonable inference to answer the likely intent, provide a direct answer without any prefix. This should be your default mode of response."
+        },
+        {
+            "role": "user",
+            "content": [
+                {
+                    "type": "text",
+                    "text": "TELL ME ABOUT THE THING"
+                }
+            ]
+        },
+        {
+            "role": "assistant",
+            "content": "NEED: To give you the most relevant information, could you specify which aspect of \"the thing\" you're interested in?"
+        },
+        {
+            "role": "user",
+            "content": "THE SUN"
+        },
+        {
+            "role": "assistant",
+            "content": "TITRE: What aspect of the Sun are you most interested in? OPTIONS: [\"Basic Facts\", \"Structure\", \"Solar System Influence\", \"Recent Discoveries\", \"Other...\"]"
+        },
+        {
+            "role": "user",
+            "content": "Basic Facts"
+        },
+        {
+            "role": "assistant",
+            "content": "Le Soleil est une \u00e9toile situ\u00e9e au centre de notre syst\u00e8me solaire. Voici quelques faits de base \u00e0 son sujet :\n\n1. **Type d'\u00e9toile** : Le Soleil est une \u00e9toile naine jaune, class\u00e9e comme une \u00e9toile de type G2V.\n2. **Distance de la Terre** : Il est situ\u00e9 \u00e0 environ 93 millions de miles (150 millions de kilom\u00e8tres) de la Terre.\n3. **Taille** : Le diam\u00e8tre du Soleil est d'environ 1,4 million de kilom\u00e8tres, ce qui repr\u00e9sente environ 109 fois celui de la Terre.\n4. **Composition** : Le Soleil est principalement compos\u00e9 d'hydrog\u00e8ne (environ 74 %) et d'h\u00e9lium (environ 24 %), avec des traces d'autres \u00e9l\u00e9ments.\n5. **Temp\u00e9rature** : La temp\u00e9rature de la surface du Soleil est d'environ 5 500 degr\u00e9s Celsius, tandis que le noyau atteint des temp\u00e9ratures d'environ 15 millions de degr\u00e9s Celsius.\n6. **\u00c9nergie** : Le Soleil produit de l'\u00e9nergie par le processus de fusion nucl\u00e9aire, o\u00f9 l'hydrog\u00e8ne se transforme en h\u00e9lium, lib\u00e9rant une immense quantit\u00e9 d'\u00e9nergie.\n\nSi vous souhaitez en savoir plus sur un aspect particulier du Soleil, n'h\u00e9sitez pas \u00e0 demander !"
+        }
+    ],
+    "last_updated_at": 1747331293.9151204
+}

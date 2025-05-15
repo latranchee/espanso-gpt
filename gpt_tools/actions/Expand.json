@@ -1,0 +1,8 @@
+{
+    "name": "Expand",
+    "requires_second_form": false,
+    "prompt_template": "{tone_instruction} Expand on the following text in {target_language}, providing more detail, examples, or explanations as appropriate: \n\n\"{input_text}\"",
+    "temperature": 0.7,
+    "max_tokens": 2500,
+    "model": "gpt-4o-mini"
+}

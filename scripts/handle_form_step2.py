@@ -30,17 +30,20 @@ def main():
     sentiment = os.getenv("ESPANSO_GPT_STEP2_FORM_DATA_SENTIMENT_CHOICE")
     relation = os.getenv("ESPANSO_GPT_STEP2_FORM_DATA_RELATION_CHOICE")
     faq_selection = os.getenv("ESPANSO_GPT_STEP2_FORM_DATA_FAQ_SELECTION")
+    desired_sketch = os.getenv("ESPANSO_GPT_STEP2_FORM_DATA_DESIRED_ANSWER_SKETCH")
 
     with open(debug_file_target, "a") as f_debug:
         f_debug.write(f"handle_form_step2.py: Retrieved from Env - Sentiment: {sentiment}\n")
         f_debug.write(f"handle_form_step2.py: Retrieved from Env - Relation: {relation}\n")
         f_debug.write(f"handle_form_step2.py: Retrieved from Env - FAQ Selection: {faq_selection}\n")
+        f_debug.write(f"handle_form_step2.py: Retrieved from Env - Desired Sketch: {desired_sketch}\n")
 
     updated_state = {
         **current_state,
         "sentiment": sentiment,
         "relation": relation,
         "selected_faq": faq_selection,
+        "desired_answer_sketch": desired_sketch,
     }
 
     try:
@@ -65,12 +68,16 @@ def main():
     sys.exit(0)
 
 if __name__ == "__main__":
-    # To test this script directly:
-    # 1. Ensure handle_form_step1.py has run and created a gpt_form_state.json with appropriate test data.
-    #    (Or, manually create gpt_form_state.json in the expected CONFIG_DIR for testing state_io.py)
-    #    Example content for gpt_form_state.json for this test:
-    #    { "task_objective": "Customer Support Task", "output_language": "French", 
-    #      "initial_prompt": "Test from step1", "desired_answer_sketch": "Sketch from step1" }
+    # 0. Call this script with the arguments for this form step.
+    #    Example: python scripts/handle_form_step2.py "positive" "formal" "Here is an idea for the answer..."
+    #
+    # 1. Ensure handle_form_step1.py has run and created a gpt_tools/gpt_form_state.json with appropriate test data.
+    #    (Or, manually create gpt_tools/gpt_form_state.json in the expected CONFIG_DIR for testing state_io.py)
+    #    Example content for gpt_tools/gpt_form_state.json for this test:
+    #    {
+    #        "task_objective": "Generate a summary",
+    #        "input_text": "This is the long text to summarize.",
+    #    }
     # 2. Set mock env vars for Step 2 fields:
     #    os.environ["ESPANSO_GPT_STEP2_FORM_DATA_SENTIMENT_CHOICE"] = "Test Sentiment"
     #    os.environ["ESPANSO_GPT_STEP2_FORM_DATA_RELATION_CHOICE"] = "Test Relation"

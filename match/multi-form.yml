@@ -2,6 +2,14 @@ matches:
   - trigger: ":gpt:"
     replace: "{{step1_handler_output}}" # Use the (empty) output of the Step 1 handler script
     vars:
+      - name: initial_clipboard_content # Clipboard variable for form
+        type: clipboard
+      - name: "task_list_output" # New script variable for dynamic tasks
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/list_task_files.py"
       - name: gpt_step1_form_data 
         type: form
         params:
@@ -17,13 +25,10 @@ matches:
             OUTPUT LANGUAGE:
             [[output_language_choice]]
             --------------------------------------------------------------------
-            INITIAL PROMPT (Leave empty to use clipboard content):
+            INITIAL PROMPT:
             [[initial_user_prompt]]
             --------------------------------------------------------------------
-            DESIRED ANSWER SKETCH (Optional):
-            [[desired_answer_sketch]]
-            --------------------------------------------------------------------
-            INCLUDE SCREENSHOT? (Requires brief pause after submitting form)
+            INCLUDE SCREEN
             [[include_screenshot_choice]]
           fields:
             conversation_mode_choice:
@@ -36,10 +41,7 @@ matches:
             task_objective_choice: 
               type: list
               default: "Speech-to-Text Editor"
-              values:
-                - "General Q&A"
-                - "Speech-to-Text Editor"
-                - "Customer Support Task"
+              values: "{{task_list_output}}" # Use dynamic tasks list
             output_language_choice:
               type: list
               default: "French"
@@ -49,11 +51,8 @@ matches:
             initial_user_prompt:
               type: text
               multiline: true
-              label: "Initial Prompt (leave empty for clipboard)"
-            desired_answer_sketch:
-              type: text
-              multiline: true
-              label: "Desired Answer Sketch (Optional)"
+              label: "Initial Prompt (defaults to clipboard)"
+              default: "{{initial_clipboard_content}}"
             include_screenshot_choice:
               type: list
               label: "Include Screenshot?"
@@ -71,7 +70,6 @@ matches:
             - "{{gpt_step1_form_data.task_objective_choice}}"
             - "{{gpt_step1_form_data.output_language_choice}}"
             - "{{gpt_step1_form_data.initial_user_prompt}}"
-            - "{{gpt_step1_form_data.desired_answer_sketch}}"
             - "{{gpt_step1_form_data.include_screenshot_choice}}"
 
   # Step 2 Form (Conditional - Triggered by handle_form_step1.py if Task Objective is Customer Support)
@@ -98,6 +96,9 @@ matches:
             --------------------------------------------------------------------
             FAQ TO INCLUDE (Optional):
             [[faq_selection]]
+            --------------------------------------------------------------------
+            CUSTOM INSTRUCTIONS (Optional):
+            [[desired_answer_sketch]]
           fields:
             sentiment_choice:
               type: list
@@ -120,6 +121,10 @@ matches:
               type: list
               default: "None"
               values: "{{gpt_faq_list_for_step2}}"
+            desired_answer_sketch:
+              type: text
+              multiline: true
+              label: "Desired Answer Sketch (Optional)"
       - name: step2_handler_output
         type: script
         params:
@@ -129,6 +134,7 @@ matches:
             - "{{gpt_step2_form_data.sentiment_choice}}"
             - "{{gpt_step2_form_data.relation_choice}}"
             - "{{gpt_step2_form_data.faq_selection}}"
+            - "{{gpt_step2_form_data.desired_answer_sketch}}"
 
   # Final Processing Trigger (Triggered by handle_form_step1.py or handle_form_step2.py)
   - trigger: ":gpt_final_processing"

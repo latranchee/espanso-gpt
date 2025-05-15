@@ -27,10 +27,10 @@
 
 # --- Auto-restart
 # Enable/disable the config auto-reload after a file change is detected.
-auto_restart: true
+auto_restart: false
 
 # --- Clipboard threshold
-# Because injecting long texts char-by-char is a slow operation, espanso automatically
+# Because injecting long texts char-by-char is a slow operation, espanso automatically:gpt:
 # uses the clipboard if the text is longer than 'clipboard_threshold' characters.
 # clipboard_threshold: 100
 

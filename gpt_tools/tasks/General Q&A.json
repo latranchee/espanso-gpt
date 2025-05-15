@@ -1,0 +1,10 @@
+{
+    "name": "General Q&A",
+    "requires_second_form": false,
+    "second_form_fields": [],
+    "system_message_template": "You are a helpful AI assistant designed to answer questions and provide information across a wide range of topics. {language_instruction}",
+    "description": "Answer general questions on any topic.",
+    "temperature": 0.5,
+    "max_tokens": 2000,
+    "model": "gpt-4o-mini"
+}

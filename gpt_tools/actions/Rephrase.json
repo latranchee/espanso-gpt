@@ -1,0 +1,8 @@
+{
+    "name": "Rephrase",
+    "requires_second_form": false,
+    "prompt_template": "{tone_instruction} Rephrase the following text in {target_language}: \n\n\"{input_text}\"",
+    "temperature": 0.6,
+    "max_tokens": 2000,
+    "model": "gpt-4o-mini"
+}
