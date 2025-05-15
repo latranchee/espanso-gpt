@@ -1,5 +1,5 @@
 matches:
-  - trigger: ":gpt"
+  - trigger: ":gpt:"
     replace: "{{step1_handler_output}}" # Use the (empty) output of the Step 1 handler script
     vars:
       - name: gpt_step1_form_data 

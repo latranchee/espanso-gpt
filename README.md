@@ -13,15 +13,17 @@ A powerful Espanso configuration with GPT-powered text enhancements, emoji packs
 
 ### Multi-step AI Task Form
 
-![AI Task Form](https://github.com/latranchee/espanso-gpt/raw/master/screenshots/ai_task_form.png)
+![AI Task Form](https://github.com/latranchee/espanso-gpt/raw/master/screenshots/step_1.jpg)
+
+![AI Task Form](https://github.com/latranchee/espanso-gpt/raw/master/screenshots/step_2.jpg)
 
 ### Text Transformation
 
-![Text Transformation](https://github.com/latranchee/espanso-gpt/raw/master/screenshots/text_transformation.png)
+![Text Transformation](https://github.com/latranchee/espanso-gpt/raw/master/screenshots/text_transform.png)
 
 ### Context Requests
 
-![Context Requests](https://github.com/latranchee/espanso-gpt/raw/master/screenshots/context_request.png)
+![AI Task Form](https://github.com/latranchee/espanso-gpt/raw/master/screenshots/context.jpg)
 
 ## Setup Instructions
 
@@ -75,7 +77,7 @@ espanso restart
 
 ### AI Task Assistant
 
-Type `:gpt` and a form will appear, letting you:
+Type `:gpt:` and a form will appear, letting you:
 
 - Select conversation mode (new or continue last)
 - Choose task objective (Q&A, Speech-to-Text, Customer Support)
@@ -87,7 +89,7 @@ This multi-step form adapts to your selected objective, asking additional questi
 
 ### Text Transformations
 
-Type `:txt` to open the text transformation menu where you can:
+Type `:rephrase:` to open the text transformation menu where you can:
 
 - Rephrase text in different tones (friendly, formal, etc.)
 - Expand on ideas
