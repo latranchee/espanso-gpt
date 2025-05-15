@@ -1,0 +1,68 @@
+matches:
+  - trigger: ":rephrase:" # You can change this trigger
+    replace: "{{output}}"
+    vars:
+      - name: "clip_content" # Variable to hold clipboard content, name is quoted
+        type: "clipboard"  # Type is quoted
+      - name: form
+        type: form
+        params:
+          layout: |
+            MODIFICATION DE TEXTE
+            --------------------------------------------------------------------
+            ACTION:
+            [[action_choice]]
+            --------------------------------------------------------------------
+            TON:
+            [[tone_choice]]
+            --------------------------------------------------------------------
+            LANGUE DE SORTIE:
+            [[language_choice]]
+            --------------------------------------------------------------------
+            TEXTE À MODIFIER (depuis le presse-papiers):
+            [[text_to_process]]
+          fields:
+            action_choice:
+              type: list
+              default: Rephrase
+              values:
+                - Rephrase
+                - Expand
+                - "Fix grammar"
+                - Translate
+            tone_choice:
+              type: list
+              default: Friendly
+              values:
+                - Friendly
+                - Formal
+                - "Walking on eggshells"
+            language_choice: # New field for language
+              type: list
+              default: English # Default to English
+              values:
+                - English
+                - French
+            text_to_process:
+              type: text
+              multiline: true
+              default: "{{clip_content}}" # Reference the clipboard variable
+              # This field is mainly for display/confirmation or minor edits.
+              # The script ultimately uses pyperclip.paste() again,
+              # so if the user edits this field, those edits will be what's on the clipboard
+              # when the script runs, assuming they copy it back or Espanso updates the clipboard.
+              # For simplicity, we'll rely on the script always getting the *current* clipboard.
+              # If direct passing of this field to the script is desired later, we can adjust.
+
+      - name: output
+        type: script
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/text_processor.py"
+            - "{{form.action_choice}}"
+            - "{{form.tone_choice}}"
+            - "{{form.text_to_process}}"
+            - "{{form.language_choice}}" # Pass the selected language
+            # Note: We are now passing form.text_to_process as an argument.
+            # The script text_processor.py will be updated to use this. 

@@ -1,0 +1,144 @@
+matches:
+  - trigger: ":gpt"
+    replace: "{{step1_handler_output}}" # Use the (empty) output of the Step 1 handler script
+    vars:
+      - name: gpt_step1_form_data 
+        type: form
+        params:
+          layout: |
+            AI TASK - STEP 1: Define Objective & Core Input
+            --------------------------------------------------------------------
+            CONVERSATION MODE:
+            [[conversation_mode_choice]]
+            --------------------------------------------------------------------
+            TASK OBJECTIVE:
+            [[task_objective_choice]]
+            --------------------------------------------------------------------
+            OUTPUT LANGUAGE:
+            [[output_language_choice]]
+            --------------------------------------------------------------------
+            INITIAL PROMPT (Leave empty to use clipboard content):
+            [[initial_user_prompt]]
+            --------------------------------------------------------------------
+            DESIRED ANSWER SKETCH (Optional):
+            [[desired_answer_sketch]]
+            --------------------------------------------------------------------
+            INCLUDE SCREENSHOT? (Requires brief pause after submitting form)
+            [[include_screenshot_choice]]
+          fields:
+            conversation_mode_choice:
+              type: list
+              label: "Conversation Mode"
+              default: "Start New"
+              values:
+                - "Start New"
+                - "Continue Last"
+            task_objective_choice: 
+              type: list
+              default: "Speech-to-Text Editor"
+              values:
+                - "General Q&A"
+                - "Speech-to-Text Editor"
+                - "Customer Support Task"
+            output_language_choice:
+              type: list
+              default: "French"
+              values:
+                - "French"
+                - "English"
+            initial_user_prompt:
+              type: text
+              multiline: true
+              label: "Initial Prompt (leave empty for clipboard)"
+            desired_answer_sketch:
+              type: text
+              multiline: true
+              label: "Desired Answer Sketch (Optional)"
+            include_screenshot_choice:
+              type: list
+              label: "Include Screenshot?"
+              values:
+                - "false"
+                - "true"
+              default: "false"
+      - name: step1_handler_output 
+        type: script
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/handle_form_step1.py"
+            - "{{gpt_step1_form_data.conversation_mode_choice}}"
+            - "{{gpt_step1_form_data.task_objective_choice}}"
+            - "{{gpt_step1_form_data.output_language_choice}}"
+            - "{{gpt_step1_form_data.initial_user_prompt}}"
+            - "{{gpt_step1_form_data.desired_answer_sketch}}"
+            - "{{gpt_step1_form_data.include_screenshot_choice}}"
+
+  # Step 2 Form (Conditional - Triggered by handle_form_step1.py if Task Objective is Customer Support)
+  - trigger: ":gpt_form_step2" 
+    replace: "{{step2_handler_output}}" # Use the (empty) output of the Step 2 handler script
+    vars:
+      - name: gpt_faq_list_for_step2 # Script variable to populate FAQ dropdown for step 2
+        type: script
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/list_faq_files.py"
+      - name: gpt_step2_form_data
+        type: form
+        params:
+          layout: | 
+            AI TASK - STEP 2: Customer Support Details
+            --------------------------------------------------------------------
+            SENTIMENT:
+            [[sentiment_choice]]
+            --------------------------------------------------------------------
+            RELATION:
+            [[relation_choice]]
+            --------------------------------------------------------------------
+            FAQ TO INCLUDE (Optional):
+            [[faq_selection]]
+          fields:
+            sentiment_choice:
+              type: list
+              default: "neutre"
+              values:
+                - "affirmatif"
+                - "neutre"
+                - "negatif"
+                - "empathetic"
+            relation_choice:
+              type: list
+              default: "client"
+              values:
+                - "client"
+                - "colleague"
+                - "lead"
+                - "partner"
+                - "ami"
+            faq_selection:
+              type: list
+              default: "None"
+              values: "{{gpt_faq_list_for_step2}}"
+      - name: step2_handler_output
+        type: script
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/handle_form_step2.py"
+            - "{{gpt_step2_form_data.sentiment_choice}}"
+            - "{{gpt_step2_form_data.relation_choice}}"
+            - "{{gpt_step2_form_data.faq_selection}}"
+
+  # Final Processing Trigger (Triggered by handle_form_step1.py or handle_form_step2.py)
+  - trigger: ":gpt_final_processing"
+    replace: "{{final_gpt_output}}" # Assumes gpt_chat.py will print its final result to stdout
+    vars:
+      - name: final_gpt_output
+        type: script
+        params:
+          args:
+            - python
+            # gpt_chat.py will be modified to read its parameters from the state file
+            # No direct arguments passed here from the YAML.
+            - "%CONFIG%/scripts/multi-form.py"

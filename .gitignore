@@ -1,0 +1,11 @@
+# Ignore sensitive and unnecessary files/folders
+.env
+base.yml
+match/packages/
+faq/*.md
+!faq/sample.md
+context/*.json
+.cursor/
+.vscode/
+scripts/__pycache__/
+last_conversation_id.txt 

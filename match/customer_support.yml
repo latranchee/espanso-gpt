@@ -1,0 +1,91 @@
+matches:
+  - trigger: ":support:"
+    replace: "{{output}}"
+    vars:
+      - name: "clip_content_agent"
+        type: "clipboard"
+      - name: faq_list_script_output
+        type: script
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/list_faq_files.py"
+
+      - name: form
+        type: form
+        params:
+          layout: |
+            Style de réponse 
+            [[sentiment]]
+            --------------------------------------------------------------------------------------------------------
+            Type de relation  
+            [[relation]]
+            --------------------------------------------------------------------------------------------------------
+            FAQ à inclure
+            [[selected_faq]]
+            --------------------------------------------------------------------------------------------------------
+            LANGUE DE SORTIE:
+            [[language_choice]]
+            --------------------------------------------------------------------------------------------------------
+            Inclure une capture d'écran?
+            [[include_screenshot]]
+            --------------------------------------------------------------------------------------------------------
+            MESSAGE ACTUEL (du presse-papiers):
+            [[message]]
+            --------------------------------------------------------------------------------------------------------
+            ESQUISSE DE RÉPONSE SOUHAITÉE (optionnel):
+            [[desired_answer_sketch]]
+          fields:
+            message:
+              type: text
+              multiline: true
+              default: "{{clip_content_agent}}"
+            sentiment:
+              type: list
+              default: neutre
+              values:
+                - affirmatif
+                - neutre
+                - negatif
+            relation:
+              type: list
+              default: client
+              values:
+                - client
+                - collègue
+                - ami
+            selected_faq:
+              type: list
+              default: "None"
+              values: "{{faq_list_script_output}}"
+            language_choice:
+              type: list
+              default: French
+              values:
+                - English
+                - French
+            include_screenshot:
+              type: list
+              values: 
+                - "true"
+                - "false"
+              default: "true"
+              label: "Inclure une capture d'écran?"
+            desired_answer_sketch:
+              type: text
+              multiline: true
+              label: "Esquisse de réponse souhaitée (optionnel)"
+
+      - name: output
+        type: script
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/customer_support.py"
+            - "{{form.sentiment}}"
+            - "{{form.relation}}"
+            - "{{form.selected_faq}}"
+            - "{{form.language_choice}}"
+            - "{{form.include_screenshot}}"
+            - "{{form.message}}"
+            - "{{form.desired_answer_sketch}}"

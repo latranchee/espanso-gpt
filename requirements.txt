@@ -1,0 +1,6 @@
+pyautogui
+requests
+python-dotenv
+pyperclip
+openai
+Pillow 
