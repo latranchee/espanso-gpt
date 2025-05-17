@@ -20,19 +20,22 @@ matches:
         type: form
         params:
           layout: |
-            MODIFICATION DE TEXTE
+            TEXT MODIFICATION
             --------------------------------------------------------------------
             ACTION:
             [[action_choice]]
             --------------------------------------------------------------------
-            TON:
+            TONE:
             [[tone_choice]]
             --------------------------------------------------------------------
-            LANGUE DE SORTIE:
+            OUTPUT LANGUAGE:
             [[language_choice]]
             --------------------------------------------------------------------
-            TEXTE À MODIFIER (depuis le presse-papiers):
+            TEXT TO MODIFY:
             [[text_to_process]]
+            --------------------------------------------------------------------
+            CUSTOM INSTRUCTIONS:
+            [[custom_instructions_field]]
           fields:
             action_choice:
               type: list
@@ -51,13 +54,11 @@ matches:
             text_to_process:
               type: text
               multiline: true
-              default: "{{clip_content}}" # Reference the clipboard variable
-              # This field is mainly for display/confirmation or minor edits.
-              # The script ultimately uses pyperclip.paste() again,
-              # so if the user edits this field, those edits will be what's on the clipboard
-              # when the script runs, assuming they copy it back or Espanso updates the clipboard.
-              # For simplicity, we'll rely on the script always getting the *current* clipboard.
-              # If direct passing of this field to the script is desired later, we can adjust.
+              default: "{{clip_content}}" 
+            custom_instructions_field:
+              type: text
+              multiline: true
+              default: ""
 
       - name: output
         type: script
@@ -69,5 +70,6 @@ matches:
             - "{{form.tone_choice}}"
             - "{{form.text_to_process}}"
             - "{{form.language_choice}}" # Pass the selected language
+            - "{{form.custom_instructions_field}}"
             # Note: We are now passing form.text_to_process as an argument.
             # The script text_processor.py will be updated to use this. 

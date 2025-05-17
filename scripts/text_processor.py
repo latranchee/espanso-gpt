@@ -87,9 +87,9 @@ if not API_KEY:
 # Initialize OpenAI client
 client = OpenAI(api_key=API_KEY)
 
-def get_modified_text(action_name: str, tone_filename_base: str, input_text: str, target_language: str) -> str:
+def get_modified_text(action_name: str, tone_filename_base: str, input_text: str, target_language: str, custom_instructions: str) -> str:
     if DEBUG_MODE:
-        print(f"DEBUG text_processor: Received action_name: {action_name}, tone_filename_base: {tone_filename_base}", file=sys.stderr)
+        print(f"DEBUG text_processor: Received action_name: {action_name}, tone_filename_base: {tone_filename_base}, custom_instructions: {custom_instructions}", file=sys.stderr)
     
     # Get the action configuration from JSON
     action_config = get_action(action_name)
@@ -137,6 +137,8 @@ def get_modified_text(action_name: str, tone_filename_base: str, input_text: str
             target_language=target_language,
             input_text=input_text
         )
+        if custom_instructions and custom_instructions.strip():
+            user_prompt += f"\\n\\nCustom Instructions:\\n{custom_instructions}"
     except KeyError as e:
         return f"Error: Missing field in action config: {e}"
     except Exception as e:
@@ -181,8 +183,8 @@ if __name__ == "__main__":
 
     modified_text_result = ""
     try:
-        if len(sys.argv) != 5:
-            print("Usage: python text_processor.py <action> <tone> \"<input_text>\" <target_language>", file=sys.stderr)
+        if len(sys.argv) != 6: # Updated to 6 arguments
+            print("Usage: python text_processor.py <action> <tone> \"<input_text>\" <target_language> \"[custom_instructions]\"", file=sys.stderr)
             modified_text_result = "Error: Incorrect number of arguments."
             # sys.exit(1) # Don't exit, let finally close the popup, then print error
         else:
@@ -190,13 +192,14 @@ if __name__ == "__main__":
             tone_arg = sys.argv[2]
             original_text_arg = sys.argv[3]
             target_language_arg = sys.argv[4]
+            custom_instructions_arg = sys.argv[5] # New argument
 
             if not original_text_arg.strip():
                 print("Input text is empty. Please provide some text in the form.", file=sys.stderr)
                 modified_text_result = "" # Espanso will just remove the trigger if output is empty
             else:
                 # Make the API call
-                modified_text_result = get_modified_text(action_arg, tone_arg, original_text_arg, target_language_arg)
+                modified_text_result = get_modified_text(action_arg, tone_arg, original_text_arg, target_language_arg, custom_instructions_arg)
     
     except Exception as e_main:
         modified_text_result = f"Script Error: {e_main}"

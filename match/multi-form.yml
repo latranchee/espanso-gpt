@@ -14,7 +14,7 @@ matches:
         type: form
         params:
           layout: |
-            AI TASK - STEP 1: Define Objective & Core Input
+            STEP 1: Define Objective & Core Input
             --------------------------------------------------------------------
             CONVERSATION MODE:
             [[conversation_mode_choice]]
@@ -28,7 +28,7 @@ matches:
             INITIAL PROMPT:
             [[initial_user_prompt]]
             --------------------------------------------------------------------
-            INCLUDE SCREEN
+            INCLUDE SCREENSHOT?
             [[include_screenshot_choice]]
           fields:
             conversation_mode_choice:
