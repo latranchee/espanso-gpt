@@ -19,7 +19,7 @@ def main():
     
     # Log all environment variables at the start of main when run by Espanso
     try:
-        with open(debug_file_target, "w") as f_debug: # 'w' to overwrite for this new run
+        with open(debug_file_target, "w", encoding="utf-8") as f_debug: # 'w' to overwrite for this new run
             f_debug.write("--- handle_form_step1.py: ALL ENVIRONMENT VARIABLES ---\n")
             for key, value in os.environ.items():
                 f_debug.write(f"{key}=>{value}\n")
@@ -31,10 +31,10 @@ def main():
     # Clear previous state and log it
     try:
         delete_state()
-        with open(debug_file_target, "a") as f_debug: # 'a' to append now
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug: # 'a' to append now
             f_debug.write(f"handle_form_step1.py: Called delete_state() for {STATE_FILE_PATH}. File exists after delete: {os.path.exists(STATE_FILE_PATH)}\n")
     except Exception as e:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"handle_form_step1.py: Error deleting state: {e}\n")
         # print(f"Error deleting previous state in handle_form_step1: {e}", file=sys.stderr)
 
@@ -51,7 +51,7 @@ def main():
     include_screenshot_str = os.getenv("ESPANSO_GPT_STEP1_FORM_DATA_INCLUDE_SCREENSHOT_CHOICE", "false") # New var
 
     # Log the values it *thinks* it got for the specific fields
-    with open(debug_file_target, "a") as f_debug:
+    with open(debug_file_target, "a", encoding="utf-8") as f_debug:
         f_debug.write(f"handle_form_step1.py: Retrieved from Env - Conv Mode: {conversation_mode}\n")
         f_debug.write(f"handle_form_step1.py: Retrieved from Env - Task Objective: {task_objective}\n")
         f_debug.write(f"handle_form_step1.py: Retrieved from Env - Output Language: {output_language}\n")
@@ -60,34 +60,34 @@ def main():
         f_debug.write(f"handle_form_step1.py: Retrieved from Env - Include Screenshot: {include_screenshot_str}\n") # Log new var
 
     if task_objective is None:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write("ERROR handle_form_step1: Task Objective is None after os.getenv.\n")
         sys.exit(1) # Indicate an error
 
     active_conversation_id = ""
     if conversation_mode == "Continue Last":
         try:
-            with open(LAST_CONV_ID_FILEPATH, "r") as f_last_id:
+            with open(LAST_CONV_ID_FILEPATH, "r", encoding="utf-8") as f_last_id:
                 active_conversation_id = f_last_id.read().strip()
             if not active_conversation_id:
                 conversation_mode = "Start New"
                 if DEBUG_MODE:
-                    with open(debug_file_target, "a") as f_debug:
+                    with open(debug_file_target, "a", encoding="utf-8") as f_debug:
                         f_debug.write("DEBUG handle_form_step1: last_conversation_id.txt was empty. Switching to Start New.\n")
             else:
                 if DEBUG_MODE:
-                    with open(debug_file_target, "a") as f_debug:
+                    with open(debug_file_target, "a", encoding="utf-8") as f_debug:
                         f_debug.write(f"DEBUG handle_form_step1: Loaded last_conversation_id: {active_conversation_id}\n")
         except FileNotFoundError:
             conversation_mode = "Start New"
             if DEBUG_MODE:
-                with open(debug_file_target, "a") as f_debug:
+                with open(debug_file_target, "a", encoding="utf-8") as f_debug:
                     f_debug.write("DEBUG handle_form_step1: last_conversation_id.txt not found. Switching to Start New.\n")
     
     if conversation_mode == "Start New":
         active_conversation_id = str(time.time())
         if DEBUG_MODE:
-            with open(debug_file_target, "a") as f_debug:
+            with open(debug_file_target, "a", encoding="utf-8") as f_debug:
                 f_debug.write(f"DEBUG handle_form_step1: Generated new_conversation_id: {active_conversation_id}\n")
 
     # If initial_prompt_from_form is empty, try to use clipboard content
@@ -97,11 +97,11 @@ def main():
             final_initial_prompt = pyperclip.paste()
             if not final_initial_prompt: # If clipboard is also empty
                 final_initial_prompt = "" # Ensure it's an empty string, not None
-            with open(debug_file_target, "a") as f_debug:
+            with open(debug_file_target, "a", encoding="utf-8") as f_debug:
                  f_debug.write(f"DEBUG handle_form_step1: Pyperclip paste result for initial_prompt: '{final_initial_prompt}'\n")
         except Exception as e_clip:
             final_initial_prompt = ""
-            with open(debug_file_target, "a") as f_debug:
+            with open(debug_file_target, "a", encoding="utf-8") as f_debug:
                  f_debug.write(f"DEBUG handle_form_step1: Pyperclip error: {e_clip}. Using empty prompt for initial_prompt.\n")
 
     step1_data = {
@@ -117,10 +117,10 @@ def main():
 
     try:
         save_state(step1_data)
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"handle_form_step1.py: Saved step1_data to state file: {step1_data}\n")
     except Exception as e:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"ERROR handle_form_step1: Could not save state: {e}\n")
         # print(f"ERROR handle_form_step1: Could not save state. {e}", file=sys.stderr)
         sys.exit(1)
@@ -133,14 +133,14 @@ def main():
         next_trigger = ":gpt_final_processing"
     
     try:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"handle_form_step1.py: Triggering next step: {next_trigger}\n")
         # Add a small delay if screenshot is true, to allow screen to settle after form submission
         if include_screenshot_str.lower() == "true":
             time.sleep(0.5) # 0.5 second delay, adjust if needed
         subprocess.run([ESPANSO_CMD_PATH, "match", "exec", "-t", next_trigger], check=True)
     except Exception as e_subproc:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"ERROR handle_form_step1: Failed to trigger '{next_trigger}'. Error: {e_subproc}\n")
         # print(f"ERROR handle_form_step1: Failed to trigger next Espanso match '{next_trigger}'. Error: {e}", file=sys.stderr)
         sys.exit(1)
