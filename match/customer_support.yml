@@ -10,6 +10,47 @@ matches:
           args:
             - python
             - "%CONFIG%/scripts/list_faq_files.py"
+      # Dynamic defaults based on saved preferences
+      - name: "default_sentiment"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "customer_support"
+            - "sentiment"
+      - name: "default_relation"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "customer_support"
+            - "relation"
+      - name: "default_selected_faq"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "customer_support"
+            - "selected_faq"
+      - name: "default_language_choice"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "customer_support"
+            - "language_choice"
+      - name: "default_include_screenshot"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "customer_support"
+            - "include_screenshot"
 
       - name: form
         type: form
@@ -42,25 +83,25 @@ matches:
               default: "{{clip_content_agent}}"
             sentiment:
               type: list
-              default: neutre
+              default: "{{default_sentiment}}"
               values:
                 - affirmatif
                 - neutre
                 - negatif
             relation:
               type: list
-              default: client
+              default: "{{default_relation}}"
               values:
                 - client
                 - collègue
                 - ami
             selected_faq:
               type: list
-              default: "None"
+              default: "{{default_selected_faq}}"
               values: "{{faq_list_script_output}}"
             language_choice:
               type: list
-              default: French
+              default: "{{default_language_choice}}"
               values:
                 - English
                 - French
@@ -69,7 +110,7 @@ matches:
               values: 
                 - "true"
                 - "false"
-              default: "true"
+              default: "{{default_include_screenshot}}"
               label: "Inclure une capture d'écran?"
             desired_answer_sketch:
               type: text

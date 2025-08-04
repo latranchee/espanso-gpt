@@ -5,6 +5,7 @@ import pyperclip
 import time # For generating unique IDs
 # import uuid # Alternative for unique IDs: uuid.uuid4()
 from state_io import save_state, delete_state, STATE_FILE_PATH, load_state, CONFIG_DIR # Import CONFIG_DIR
+from preferences_manager import update_form_preferences
 
 DEBUG_MODE = True
 
@@ -114,6 +115,22 @@ def main():
         "include_screenshot": include_screenshot_str, # Save to state
         # Add any other fields from Step 1 form here
     }
+
+    # Save user preferences for next time
+    try:
+        preferences_to_save = {
+            "conversation_mode_choice": conversation_mode,
+            "task_objective_choice": task_objective,
+            "output_language_choice": output_language,
+            "include_screenshot_choice": include_screenshot_str
+        }
+        update_form_preferences("gpt_multi_form", preferences_to_save)
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
+            f_debug.write(f"handle_form_step1.py: Saved preferences: {preferences_to_save}\n")
+    except Exception as e_prefs:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
+            f_debug.write(f"WARNING handle_form_step1: Could not save preferences: {e_prefs}\n")
+        # Don't exit on preference save failure, it's not critical
 
     try:
         save_state(step1_data)

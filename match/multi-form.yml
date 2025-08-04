@@ -10,6 +10,39 @@ matches:
           args:
             - python
             - "%CONFIG%/scripts/list_task_files.py"
+      # Dynamic defaults based on saved preferences
+      - name: "default_conversation_mode"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "gpt_multi_form"
+            - "conversation_mode_choice"
+      - name: "default_task_objective"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "gpt_multi_form"
+            - "task_objective_choice"
+      - name: "default_output_language"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "gpt_multi_form"
+            - "output_language_choice"
+      - name: "default_include_screenshot"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "gpt_multi_form"
+            - "include_screenshot_choice"
       - name: gpt_step1_form_data 
         type: form
         params:
@@ -34,17 +67,17 @@ matches:
             conversation_mode_choice:
               type: list
               label: "Conversation Mode"
-              default: "Start New"
+              default: "{{default_conversation_mode}}"
               values:
                 - "Start New"
                 - "Continue Last"
             task_objective_choice: 
               type: list
-              default: "Speech-to-Text Editor"
+              default: "{{default_task_objective}}"
               values: "{{task_list_output}}" # Use dynamic tasks list
             output_language_choice:
               type: list
-              default: "French"
+              default: "{{default_output_language}}"
               values:
                 - "French"
                 - "English"
@@ -59,7 +92,7 @@ matches:
               values:
                 - "false"
                 - "true"
-              default: "false"
+              default: "{{default_include_screenshot}}"
       - name: step1_handler_output 
         type: script
         params:
@@ -82,6 +115,31 @@ matches:
           args:
             - python
             - "%CONFIG%/scripts/list_faq_files.py"
+      # Dynamic defaults for step 2 form
+      - name: "default_sentiment_step2"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "gpt_step2_form"
+            - "sentiment_choice"
+      - name: "default_relation_step2"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "gpt_step2_form"
+            - "relation_choice"
+      - name: "default_faq_step2"
+        type: "script"
+        params:
+          args:
+            - python
+            - "%CONFIG%/scripts/get_form_defaults.py"
+            - "gpt_step2_form"
+            - "faq_selection"
       - name: gpt_step2_form_data
         type: form
         params:
@@ -102,7 +160,7 @@ matches:
           fields:
             sentiment_choice:
               type: list
-              default: "neutre"
+              default: "{{default_sentiment_step2}}"
               values:
                 - "affirmatif"
                 - "neutre"
@@ -110,7 +168,7 @@ matches:
                 - "empathetic"
             relation_choice:
               type: list
-              default: "client"
+              default: "{{default_relation_step2}}"
               values:
                 - "client"
                 - "colleague"
@@ -119,7 +177,7 @@ matches:
                 - "ami"
             faq_selection:
               type: list
-              default: "None"
+              default: "{{default_faq_step2}}"
               values: "{{gpt_faq_list_for_step2}}"
             desired_answer_sketch:
               type: text

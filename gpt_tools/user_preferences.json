@@ -1,0 +1,20 @@
+{
+    "gpt_multi_form": {
+        "conversation_mode_choice": "Start New",
+        "task_objective_choice": "Customer Support Task",
+        "output_language_choice": "French",
+        "include_screenshot_choice": "false"
+    },
+    "gpt_step2_form": {
+        "sentiment_choice": "negatif",
+        "relation_choice": "client",
+        "faq_selection": "LB-Clients.md"
+    },
+    "customer_support": {
+        "sentiment": "neutre",
+        "relation": "client",
+        "selected_faq": "None",
+        "language_choice": "French",
+        "include_screenshot": "true"
+    }
+}

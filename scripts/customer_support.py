@@ -19,6 +19,10 @@ import base64, mimetypes
 from openai import OpenAI
 from PIL import Image, UnidentifiedImageError
 
+# Add the scripts directory to the path so we can import preferences_manager
+sys.path.insert(0, os.path.dirname(__file__))
+from preferences_manager import update_form_preferences
+
 # --- Loading Popup Configuration (Copied from text_processor.py) ---
 loading_popup_obj = {'root': None, 'label': None, 'running': False, 'char_index': 0}
 spinner_chars = ["⢿", "⣻", "⣽", "⣾", "⣷", "⣯", "⣟", "⡿"] # Unicode Braille spinner
@@ -125,6 +129,23 @@ if __name__ == "__main__":
                 print(f"DEBUG:   include_screenshot_str: {include_screenshot_str}", file=sys.stderr)
                 print(f"DEBUG:   user_message_from_arg (first 50 chars): {user_message_from_arg[:50]}...", file=sys.stderr)
                 print(f"DEBUG:   desired_answer_sketch_from_arg (first 50 chars): {desired_answer_sketch_from_arg[:50]}...", file=sys.stderr)
+
+            # Save user preferences for next time
+            try:
+                preferences_to_save = {
+                    "sentiment": sentiment,
+                    "relation": relation,
+                    "selected_faq": selected_faq_filename,
+                    "language_choice": target_language,
+                    "include_screenshot": include_screenshot_str
+                }
+                update_form_preferences("customer_support", preferences_to_save)
+                if DEBUG_MODE:
+                    print(f"DEBUG: Saved customer support preferences: {preferences_to_save}", file=sys.stderr)
+            except Exception as e_prefs:
+                if DEBUG_MODE:
+                    print(f"WARNING: Could not save customer support preferences: {e_prefs}", file=sys.stderr)
+                # Don't exit on preference save failure, it's not critical
 
             include_screenshot = include_screenshot_str.lower() == 'true'
 

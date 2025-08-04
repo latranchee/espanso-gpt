@@ -2,6 +2,7 @@ import os
 import subprocess
 import sys
 from state_io import load_state, save_state, STATE_FILE_PATH
+from preferences_manager import update_form_preferences
 
 ESPANSO_CMD_PATH = r"C:\Users\Olivier Lambert\AppData\Local\Programs\Espanso\espanso.cmd"
 
@@ -10,7 +11,7 @@ def main():
     
     # Log all environment variables at the start of main when run by Espanso
     try:
-        with open(debug_file_target, "a") as f_debug: # Append for step 2
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug: # Append for step 2
             f_debug.write("\n--- handle_form_step2.py: ALL ENVIRONMENT VARIABLES ---\n")
             for key, value in os.environ.items():
                 f_debug.write(f"{key}=>{value}\n")
@@ -20,11 +21,11 @@ def main():
 
     current_state = load_state()
     if not current_state:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write("ERROR handle_form_step2: Failed to load state from Step 1 or state is empty.\n")
         sys.exit(1)
     else:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"handle_form_step2.py: Loaded current_state: {current_state}\n")
 
     sentiment = os.getenv("ESPANSO_GPT_STEP2_FORM_DATA_SENTIMENT_CHOICE")
@@ -32,11 +33,26 @@ def main():
     faq_selection = os.getenv("ESPANSO_GPT_STEP2_FORM_DATA_FAQ_SELECTION")
     desired_sketch = os.getenv("ESPANSO_GPT_STEP2_FORM_DATA_DESIRED_ANSWER_SKETCH")
 
-    with open(debug_file_target, "a") as f_debug:
+    with open(debug_file_target, "a", encoding="utf-8") as f_debug:
         f_debug.write(f"handle_form_step2.py: Retrieved from Env - Sentiment: {sentiment}\n")
         f_debug.write(f"handle_form_step2.py: Retrieved from Env - Relation: {relation}\n")
         f_debug.write(f"handle_form_step2.py: Retrieved from Env - FAQ Selection: {faq_selection}\n")
         f_debug.write(f"handle_form_step2.py: Retrieved from Env - Desired Sketch: {desired_sketch}\n")
+
+    # Save user preferences for next time
+    try:
+        preferences_to_save = {
+            "sentiment_choice": sentiment,
+            "relation_choice": relation,
+            "faq_selection": faq_selection
+        }
+        update_form_preferences("gpt_step2_form", preferences_to_save)
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
+            f_debug.write(f"handle_form_step2.py: Saved preferences: {preferences_to_save}\n")
+    except Exception as e_prefs:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
+            f_debug.write(f"WARNING handle_form_step2: Could not save preferences: {e_prefs}\n")
+        # Don't exit on preference save failure, it's not critical
 
     updated_state = {
         **current_state,
@@ -48,20 +64,20 @@ def main():
 
     try:
         save_state(updated_state)
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"handle_form_step2.py: Saved updated_state: {updated_state}\n")
     except Exception as e:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"ERROR handle_form_step2: Could not save updated state: {e}\n")
         sys.exit(1)
 
     next_trigger = ":gpt_final_processing"
     try:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"handle_form_step2.py: Triggering next step: {next_trigger}\n")
         subprocess.run([ESPANSO_CMD_PATH, "match", "exec", "-t", next_trigger], check=True)
     except Exception as e_subproc:
-        with open(debug_file_target, "a") as f_debug:
+        with open(debug_file_target, "a", encoding="utf-8") as f_debug:
             f_debug.write(f"ERROR handle_form_step2: Failed to trigger '{next_trigger}'. Error: {e_subproc}\n")
         sys.exit(1)
 
