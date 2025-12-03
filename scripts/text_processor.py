@@ -1,14 +1,51 @@
 #!/usr/bin/env python3
 import os
 import sys
-# import pyperclip # No longer needed for input text
 import io
-from openai import OpenAI
-from dotenv import load_dotenv
 import tkinter as tk
 import threading
 import time
-from action_reader import get_action  # Import our new action reader
+
+import glob
+
+from action_reader import get_action, resolve_action_display_name
+from llm_client import create_chat_completion
+
+# Tone files directory
+TONE_FILES_DIR = os.path.join(os.path.dirname(__file__), "..", "gpt_tools", "tone")
+
+
+def resolve_tone_display_name(display_name: str) -> str:
+    """
+    Resolve a tone display name to the actual filename (without extension).
+    Searches through all tone files to find one with matching display name.
+    Falls back to the display_name itself if no match found.
+    """
+    if not display_name or display_name in ["NoTonesFound", "ErrorListingTones"]:
+        return display_name
+
+    tone_files = glob.glob(os.path.join(TONE_FILES_DIR, "*.txt"))
+    for f_path in tone_files:
+        filename = os.path.basename(f_path)
+        name_without_ext, _ = os.path.splitext(filename)
+
+        # Check if first line is a display name
+        try:
+            with open(f_path, 'r', encoding='utf-8') as f:
+                first_line = f.readline().strip()
+                if first_line.startswith('#'):
+                    file_display_name = first_line[1:].strip()
+                    if file_display_name == display_name:
+                        return name_without_ext
+        except Exception:
+            pass
+
+        # Also check if display_name matches filename
+        if name_without_ext == display_name:
+            return name_without_ext
+
+    # Fallback: assume display_name is the filename
+    return display_name
 
 DEBUG_MODE = False # Global debug flag
 
@@ -76,23 +113,23 @@ def show_loading_popup_in_thread():
         loading_popup_obj['running'] = False
 # --- End Loading Popup Configuration ---
 
-# Load API key from .env file in the same directory as the script
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
-API_KEY = os.getenv("OPENAI_API_KEY")
-
-if not API_KEY:
-    print("Error: OPENAI_API_KEY not found in .env file.", file=sys.stderr)
-    sys.exit(1)
-
-# Initialize OpenAI client
-client = OpenAI(api_key=API_KEY)
 
 def get_modified_text(action_name: str, tone_filename_base: str, input_text: str, target_language: str, custom_instructions: str) -> str:
     if DEBUG_MODE:
         print(f"DEBUG text_processor: Received action_name: {action_name}, tone_filename_base: {tone_filename_base}, custom_instructions: {custom_instructions}", file=sys.stderr)
-    
+
+    # Resolve display names to filenames (in case display names are used)
+    resolved_action_name = resolve_action_display_name(action_name)
+    resolved_tone_name = resolve_tone_display_name(tone_filename_base)
+
+    if DEBUG_MODE:
+        if resolved_action_name != action_name:
+            print(f"DEBUG text_processor: Resolved action name '{action_name}' -> '{resolved_action_name}'", file=sys.stderr)
+        if resolved_tone_name != tone_filename_base:
+            print(f"DEBUG text_processor: Resolved tone name '{tone_filename_base}' -> '{resolved_tone_name}'", file=sys.stderr)
+
     # Get the action configuration from JSON
-    action_config = get_action(action_name)
+    action_config = get_action(resolved_action_name)
     if DEBUG_MODE:
         print(f"DEBUG text_processor: Loaded action config: {action_config}", file=sys.stderr)
     
@@ -107,7 +144,7 @@ def get_modified_text(action_name: str, tone_filename_base: str, input_text: str
     
     # Get tone instruction from file
     tone_instruction = ""
-    tone_file_path = os.path.join(os.path.dirname(__file__), "..", "gpt_tools", "tone", f"{tone_filename_base}.txt")
+    tone_file_path = os.path.join(os.path.dirname(__file__), "..", "gpt_tools", "tone", f"{resolved_tone_name}.txt")
     if DEBUG_MODE:
         print(f"DEBUG text_processor: Constructed tone_file_path: {tone_file_path}", file=sys.stderr)
 
@@ -154,24 +191,23 @@ def get_modified_text(action_name: str, tone_filename_base: str, input_text: str
         print(f"DEBUG text_processor: System message for AI: {system_message_content}", file=sys.stderr)
 
     # Get model parameters from action config
-    model = action_config.get("model", "gpt-4o-mini")
+    model = action_config.get("model", "claude-haiku-4-5-20251001")
     max_tokens = action_config.get("max_tokens", 2000)
     temperature = action_config.get("temperature", 0.6)
 
     try:
-        completion = client.chat.completions.create(
+        content = create_chat_completion(
             model=model,
             messages=messages,
             max_tokens=max_tokens,
             temperature=temperature
         )
-        content = completion.choices[0].message.content.strip()
         # Remove leading/trailing quotes if present
         if len(content) >= 2 and content.startswith('"') and content.endswith('"'):
             content = content[1:-1]
         return content
     except Exception as e:
-        return f"OpenAI API Error: {e}"
+        return f"API Error: {e}"
 
 if __name__ == "__main__":
     # Start loading popup

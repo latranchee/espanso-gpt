@@ -8,14 +8,14 @@ matches:
         type: script
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/list_faq_files.py"
       # Dynamic defaults based on saved preferences
       - name: "default_sentiment"
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "customer_support"
             - "sentiment"
@@ -23,7 +23,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "customer_support"
             - "relation"
@@ -31,7 +31,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "customer_support"
             - "selected_faq"
@@ -39,7 +39,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "customer_support"
             - "language_choice"
@@ -47,7 +47,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "customer_support"
             - "include_screenshot"
@@ -121,7 +121,7 @@ matches:
         type: script
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/customer_support.py"
             - "{{form.sentiment}}"
             - "{{form.relation}}"

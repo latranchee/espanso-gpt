@@ -8,14 +8,14 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/list_task_files.py"
       # Dynamic defaults based on saved preferences
       - name: "default_conversation_mode"
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "gpt_multi_form"
             - "conversation_mode_choice"
@@ -23,7 +23,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "gpt_multi_form"
             - "task_objective_choice"
@@ -31,7 +31,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "gpt_multi_form"
             - "output_language_choice"
@@ -39,7 +39,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "gpt_multi_form"
             - "include_screenshot_choice"
@@ -97,7 +97,7 @@ matches:
         type: script
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/handle_form_step1.py"
             - "{{gpt_step1_form_data.conversation_mode_choice}}"
             - "{{gpt_step1_form_data.task_objective_choice}}"
@@ -113,14 +113,14 @@ matches:
         type: script
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/list_faq_files.py"
       # Dynamic defaults for step 2 form
       - name: "default_sentiment_step2"
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "gpt_step2_form"
             - "sentiment_choice"
@@ -128,7 +128,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "gpt_step2_form"
             - "relation_choice"
@@ -136,7 +136,7 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/get_form_defaults.py"
             - "gpt_step2_form"
             - "faq_selection"
@@ -187,7 +187,7 @@ matches:
         type: script
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/handle_form_step2.py"
             - "{{gpt_step2_form_data.sentiment_choice}}"
             - "{{gpt_step2_form_data.relation_choice}}"
@@ -202,7 +202,7 @@ matches:
         type: script
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             # gpt_chat.py will be modified to read its parameters from the state file
             # No direct arguments passed here from the YAML.
-            - "%CONFIG%/scripts/multi-form.py"
+            - "%CONFIG%/scripts/multi_form.py"

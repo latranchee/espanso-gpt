@@ -12,20 +12,24 @@ TASKS_DIR = os.path.join(CONFIG_DIR, "gpt_tools", "tasks")
 # Default schemas
 DEFAULT_ACTION_SCHEMA = {
     "name": "Unknown Action",
+    "display_name": "",
     "requires_second_form": False,
     "prompt_template": "Process the following text in {target_language}: \n\n\"{input_text}\"",
     "temperature": 0.6,
-    "max_tokens": 2000
+    "max_tokens": 2000,
+    "model": "claude-haiku-4-5-20251001"
 }
 
 DEFAULT_TASK_SCHEMA = {
     "name": "Unknown Task",
+    "display_name": "",
     "requires_second_form": False,
     "second_form_fields": [],
     "system_message_template": "You are a helpful AI assistant.",
     "description": "No description provided.",
     "temperature": 0.3,
-    "max_tokens": 2000
+    "max_tokens": 2000,
+    "model": "claude-haiku-4-5-20251001"
 }
 
 def ensure_directories():
@@ -39,14 +43,40 @@ def get_actions_list():
     action_files = glob.glob(os.path.join(ACTIONS_DIR, "*.json"))
     if not action_files:
         return ["NoActionsFound"]
-    
+
     action_names = []
     for path in sorted(action_files):
         base_name = os.path.basename(path)
         name, _ = os.path.splitext(base_name)
         action_names.append(name)
-    
+
     return action_names
+
+
+def get_actions_with_display_names() -> list[tuple[str, str]]:
+    """
+    Get a list of (filename, display_name) tuples for actions.
+    Falls back to filename if display_name is not set.
+    """
+    ensure_directories()
+    action_files = glob.glob(os.path.join(ACTIONS_DIR, "*.json"))
+    if not action_files:
+        return [("NoActionsFound", "No Actions Found")]
+
+    results = []
+    for path in sorted(action_files):
+        base_name = os.path.basename(path)
+        name, _ = os.path.splitext(base_name)
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                display = data.get("display_name", "") or name
+                results.append((name, display))
+        except Exception:
+            results.append((name, name))
+
+    return results
+
 
 def get_tasks_list():
     """Get a list of available task names (without .json extension)."""
@@ -54,14 +84,73 @@ def get_tasks_list():
     task_files = glob.glob(os.path.join(TASKS_DIR, "*.json"))
     if not task_files:
         return ["NoTasksFound"]
-    
+
     task_names = []
     for path in sorted(task_files):
         base_name = os.path.basename(path)
         name, _ = os.path.splitext(base_name)
         task_names.append(name)
-    
+
     return task_names
+
+
+def get_tasks_with_display_names() -> list[tuple[str, str]]:
+    """
+    Get a list of (filename, display_name) tuples for tasks.
+    Falls back to filename if display_name is not set.
+    """
+    ensure_directories()
+    task_files = glob.glob(os.path.join(TASKS_DIR, "*.json"))
+    if not task_files:
+        return [("NoTasksFound", "No Tasks Found")]
+
+    results = []
+    for path in sorted(task_files):
+        base_name = os.path.basename(path)
+        name, _ = os.path.splitext(base_name)
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                display = data.get("display_name", "") or name
+                results.append((name, display))
+        except Exception:
+            results.append((name, name))
+
+    return results
+
+def resolve_action_display_name(display_name: str) -> str:
+    """
+    Resolve a display name to the actual filename.
+    Searches through all actions to find one with matching display_name.
+    Falls back to the display_name itself if no match found.
+    """
+    if not display_name or display_name in ["NoActionsFound", "ErrorListingActions"]:
+        return display_name
+
+    actions = get_actions_with_display_names()
+    for filename, disp in actions:
+        if disp == display_name:
+            return filename
+    # Fallback: assume display_name is the filename
+    return display_name
+
+
+def resolve_task_display_name(display_name: str) -> str:
+    """
+    Resolve a display name to the actual filename.
+    Searches through all tasks to find one with matching display_name.
+    Falls back to the display_name itself if no match found.
+    """
+    if not display_name or display_name in ["NoTasksFound", "ErrorListingTasks"]:
+        return display_name
+
+    tasks = get_tasks_with_display_names()
+    for filename, disp in tasks:
+        if disp == display_name:
+            return filename
+    # Fallback: assume display_name is the filename
+    return display_name
+
 
 def get_action(action_name):
     """Get the configuration for a specific action."""

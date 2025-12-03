@@ -1,7 +1,8 @@
-pyautogui
-requests
-python-dotenv
-pyperclip
+anthropic
+customtkinter
 openai
 Pillow
-customtkinter 
+pyautogui
+pyperclip
+python-dotenv
+requests 

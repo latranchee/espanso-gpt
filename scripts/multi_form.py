@@ -1,43 +1,34 @@
-# gpt_chat.py
-import sys, os, io, json
+# multi_form.py (renamed from gpt_chat.py / multi-form.py)
+import sys
+import os
+import io
+import json
 import tkinter
 import threading
 import time
-from openai import OpenAI
-import customtkinter
-from dotenv import load_dotenv
-from action_reader import get_task  # Import our new action reader
-
-# New imports for screenshot functionality
 import tempfile
-import pyautogui
 import base64
-import mimetypes
+
+import customtkinter
+import pyautogui
 from PIL import Image, UnidentifiedImageError
 
-# Assuming state_io.py is in the same directory or Python's path is configured.
+from action_reader import get_task, resolve_task_display_name
 from state_io import load_state, delete_state, STATE_FILE_PATH, CONFIG_DIR
+from llm_client import create_chat_completion
 
-DEBUG_MODE = False # Disable debug mode to prevent Espanso rendering errors
+DEBUG_MODE = False  # Disable debug mode to prevent Espanso rendering errors
 
 # Ensure stdout handles UTF-8 for Espanso
 if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
-# Load API key from .env file in the script's directory
-dotenv_path = os.path.join(os.path.dirname(__file__), ".env")
-load_dotenv(dotenv_path)
-API_KEY = os.getenv("OPENAI_API_KEY")
-
-if not API_KEY:
-    if DEBUG_MODE: sys.stderr.write("ERROR: OPENAI_API_KEY not found. Checked .env at: " + dotenv_path + "\n")
-    print("ERROR: OPENAI_API_KEY not found. Please ensure it is set in scripts/.env")
-    sys.exit(1)
-
-client = OpenAI(api_key=API_KEY)
+# Default model - will be overridden by task config if available
+DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+current_model = DEFAULT_MODEL  # Global to track current model for ask_gpt
 
 if DEBUG_MODE:
-    sys.stderr.write("DEBUG: gpt_chat.py script started.\n")
+    sys.stderr.write("DEBUG: multi_form.py script started.\n")
 
 # Global GUI and state variables
 user_choice = None
@@ -201,14 +192,15 @@ def show_options_dialog(intro_text, options, parent_window):
     return user_choice
 
 def ask_gpt(history):
-    global loading_thread
-    if DEBUG_MODE: sys.stderr.write(f"DEBUG ask_gpt: Called with history (last msg type: {history[-1]['role'] if history else 'N/A'}, content: '{str(history[-1]['content'])[:50]}...' if history else 'N/A')\n")
-    
+    global loading_thread, current_model
+    if DEBUG_MODE:
+        sys.stderr.write(f"DEBUG ask_gpt: Called with history (last msg type: {history[-1]['role'] if history else 'N/A'}, content: '{str(history[-1]['content'])[:50]}...' if history else 'N/A')\n")
+
     # <<< ADDING HISTORY LOGGING TO FILE >>>
     if DEBUG_MODE:
         try:
             debug_file_target = os.path.join(os.path.expanduser("~"), "espanso_debug_paths.txt")
-            with open(debug_file_target, "a") as f_debug: # 'a' to append
+            with open(debug_file_target, "a") as f_debug:
                 f_debug.write(f"\n--- ask_gpt HISTORY (timestamp: {time.time()}) ---\n")
                 f_debug.write(json.dumps(history, indent=2))
                 f_debug.write("\n--- END ask_gpt HISTORY ---\n")
@@ -221,23 +213,24 @@ def ask_gpt(history):
         loading_thread.start()
         time.sleep(0.3)
     try:
-        r = client.chat.completions.create(
-            model="gpt-4o-mini",
+        ai_response_content = create_chat_completion(
+            model=current_model,
             messages=history,
             temperature=0.3,
         )
-        ai_response_content = r.choices[0].message.content
-        if DEBUG_MODE: sys.stderr.write(f"DEBUG ask_gpt: OpenAI API call successful. Response: '{ai_response_content[:100]}...'\n")
+        if DEBUG_MODE:
+            sys.stderr.write(f"DEBUG ask_gpt: API call successful. Response: '{ai_response_content[:100]}...'\n")
         return ai_response_content
     finally:
-        if DEBUG_MODE: sys.stderr.write("DEBUG ask_gpt: In finally block, stopping loading indicator.\n")
+        if DEBUG_MODE:
+            sys.stderr.write("DEBUG ask_gpt: In finally block, stopping loading indicator.\n")
         if loading_popup_obj.get('root'):
             loading_popup_obj['running'] = False
             try:
                 loading_popup_obj['root'].after(0, loading_popup_obj['root'].destroy)
             except tkinter.TclError:
-                pass 
-            except Exception as e:
+                pass
+            except Exception:
                 pass
         if loading_thread is not None and loading_thread.is_alive():
             loading_thread.join(timeout=0.5)
@@ -388,10 +381,21 @@ def main_logic():
         include_screenshot = include_screenshot_str.lower() == 'true'
         desired_answer_sketch = loaded_form_state.get("desired_answer_sketch", "")
 
+        # Resolve display name to filename (in case display names are used)
+        resolved_task_name = resolve_task_display_name(selected_task_objective)
+        if DEBUG_MODE and resolved_task_name != selected_task_objective:
+            sys.stderr.write(f"DEBUG: Resolved task name '{selected_task_objective}' -> '{resolved_task_name}'\n")
+
         # Get task configuration from JSON
-        task_config = get_task(selected_task_objective)
+        task_config = get_task(resolved_task_name)
         if DEBUG_MODE:
             sys.stderr.write(f"DEBUG: Loaded task config for '{selected_task_objective}': {task_config}\n")
+
+        # Set the model from task config (global for use in ask_gpt)
+        global current_model
+        current_model = task_config.get("model", DEFAULT_MODEL)
+        if DEBUG_MODE:
+            sys.stderr.write(f"DEBUG: Using model: {current_model}\n")
 
         # --- Construct final_system_message_for_api based on task configuration ---
         faq_content_for_prompt = ""

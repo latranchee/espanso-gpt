@@ -12,6 +12,7 @@ gpt_tools/context/*.json
 .vscode/
 scripts/__pycache__/
 last_conversation_id.txt
+logs/
 
 # Espanso package files and user-specific data
 *.yml.bak

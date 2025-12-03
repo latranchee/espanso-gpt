@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
-import os, sys
+import os
+import sys
 import io
 import tempfile
 import tkinter as tk
 import threading
 import time
+import base64
 
 # Enable debug mode for troubleshooting
 DEBUG_MODE = True
@@ -14,14 +16,10 @@ try:
 except ImportError:
     print("pyautogui not found. Please install it with 'pip install pyautogui'.")
     sys.exit(1)
-from dotenv import load_dotenv
-import base64, mimetypes
-from openai import OpenAI
 from PIL import Image, UnidentifiedImageError
 
-# Add the scripts directory to the path so we can import preferences_manager
-sys.path.insert(0, os.path.dirname(__file__))
 from preferences_manager import update_form_preferences
+from llm_client import create_chat_completion
 
 # --- Loading Popup Configuration (Copied from text_processor.py) ---
 loading_popup_obj = {'root': None, 'label': None, 'running': False, 'char_index': 0}
@@ -84,14 +82,8 @@ def show_loading_popup_in_thread():
 # Ensure stdout is UTF-8 encoded
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf8')
 
-# charge la clé API depuis .env placé dans CE dossier
-load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
-API_KEY = os.getenv("OPENAI_API_KEY")
-if not API_KEY:
-    sys.exit("OPENAI_API_KEY manquante dans .env")
-
-# Initialize OpenAI client
-client = OpenAI(api_key=API_KEY)
+# Default model for customer support
+DEFAULT_MODEL = "claude-haiku-4-5-20251001"
 
 if __name__ == "__main__":
     # Start loading popup
@@ -309,43 +301,39 @@ NEVER ask for more context; Just use your judgment.
                             text_part_found = True; break
                     if not text_part_found: user_message_list_content.append({"type": "text", "text": f"\n\n(Note: Screenshot at {screenshot_path})"})
                 
-                api_payload = {
-                    "model": "gpt-4o-mini",
-                    "messages": [
-                        {"role": "system", "content": system_prompt_content.strip()},
-                        {"role": "user", "content": user_message_list_content if image_message else main_user_prompt_text}
-                    ],
-                    "max_tokens": 4000,
-                    "temperature": 0.6
-                }
+                # Build messages for API call
+                messages = [
+                    {"role": "system", "content": system_prompt_content.strip()},
+                    {"role": "user", "content": user_message_list_content if image_message else main_user_prompt_text}
+                ]
 
                 if DEBUG_MODE:
                     print(f"DEBUG: API payload prepared:", file=sys.stderr)
-                    print(f"DEBUG:   model: {api_payload['model']}", file=sys.stderr)
-                    print(f"DEBUG:   system message (first 100 chars): {api_payload['messages'][0]['content'][:100]}...", file=sys.stderr)
-                    if isinstance(api_payload['messages'][1]['content'], list):
-                        print(f"DEBUG:   user message is a content list with {len(api_payload['messages'][1]['content'])} parts", file=sys.stderr)
-                        if len(api_payload['messages'][1]['content']) > 0 and api_payload['messages'][1]['content'][0]['type'] == 'text':
-                            print(f"DEBUG:   user text (first 100 chars): {api_payload['messages'][1]['content'][0]['text'][:100]}...", file=sys.stderr)
+                    print(f"DEBUG:   model: {DEFAULT_MODEL}", file=sys.stderr)
+                    print(f"DEBUG:   system message (first 100 chars): {messages[0]['content'][:100]}...", file=sys.stderr)
+                    if isinstance(messages[1]['content'], list):
+                        print(f"DEBUG:   user message is a content list with {len(messages[1]['content'])} parts", file=sys.stderr)
+                        if len(messages[1]['content']) > 0 and messages[1]['content'][0]['type'] == 'text':
+                            print(f"DEBUG:   user text (first 100 chars): {messages[1]['content'][0]['text'][:100]}...", file=sys.stderr)
                     else:
-                        print(f"DEBUG:   user message (first 100 chars): {api_payload['messages'][1]['content'][:100]}...", file=sys.stderr)
-                    print(f"DEBUG:   max_tokens: {api_payload['max_tokens']}", file=sys.stderr)
-                    print(f"DEBUG:   temperature: {api_payload['temperature']}", file=sys.stderr)
+                        print(f"DEBUG:   user message (first 100 chars): {messages[1]['content'][:100]}...", file=sys.stderr)
+                    print(f"DEBUG:   max_tokens: 4000", file=sys.stderr)
+                    print(f"DEBUG:   temperature: 0.6", file=sys.stderr)
 
                 if DEBUG_MODE:
-                    print("DEBUG: Making API call to OpenAI...", file=sys.stderr)
-                
-                completion = client.chat.completions.create(
-                    model=api_payload["model"],
-                    messages=api_payload["messages"],
-                    max_tokens=api_payload["max_tokens"],
-                    temperature=api_payload["temperature"]
+                    print("DEBUG: Making API call...", file=sys.stderr)
+
+                content = create_chat_completion(
+                    model=DEFAULT_MODEL,
+                    messages=messages,
+                    max_tokens=4000,
+                    temperature=0.6
                 )
-                
+
                 if DEBUG_MODE:
                     print("DEBUG: API call completed successfully", file=sys.stderr)
-                
-                content = completion.choices[0].message.content.strip()
+
+                # Remove leading/trailing quotes if present
                 if len(content) >= 2 and content.startswith('"') and content.endswith('"'):
                     content = content[1:-1]
                 

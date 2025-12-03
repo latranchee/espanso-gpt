@@ -8,13 +8,13 @@ matches:
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/list_tone_files.py"
       - name: "action_list_output" # New script variable for dynamic actions
         type: "script"
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/list_action_files.py"
       - name: form
         type: form
@@ -64,7 +64,7 @@ matches:
         type: script
         params:
           args:
-            - python
+            - "%CONFIG%/.venv/Scripts/python.exe"
             - "%CONFIG%/scripts/text_processor.py"
             - "{{form.action_choice}}"
             - "{{form.tone_choice}}"

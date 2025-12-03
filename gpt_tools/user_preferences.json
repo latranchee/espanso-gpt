@@ -6,9 +6,9 @@
         "include_screenshot_choice": "false"
     },
     "gpt_step2_form": {
-        "sentiment_choice": "negatif",
+        "sentiment_choice": "affirmatif",
         "relation_choice": "client",
-        "faq_selection": "LB-Clients.md"
+        "faq_selection": "None"
     },
     "customer_support": {
         "sentiment": "neutre",
