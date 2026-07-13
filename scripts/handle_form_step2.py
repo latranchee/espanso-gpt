@@ -4,7 +4,7 @@ import sys
 from state_io import load_state, save_state, STATE_FILE_PATH
 from preferences_manager import update_form_preferences
 
-ESPANSO_CMD_PATH = r"C:\Users\Olivier Lambert\AppData\Local\Programs\Espanso\espanso.cmd"
+ESPANSO_CMD_PATH = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Espanso", "espanso.cmd")
 
 def main():
     debug_file_target = os.path.join(os.path.expanduser("~"), "espanso_debug_paths.txt")

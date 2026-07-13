@@ -246,7 +246,7 @@ NEVER ask for more context; Just use your judgment.
 """
                 
                 if selected_faq_filename != "None" and selected_faq_filename.strip() != "":
-                    faq_file_path = os.path.join(os.path.dirname(__file__), "..", "markdown", selected_faq_filename)
+                    faq_file_path = os.path.join(os.path.dirname(__file__), "..", "gpt_tools", "faq", selected_faq_filename)
                     if DEBUG_MODE:
                         print(f"DEBUG: Looking for FAQ file at: {faq_file_path}", file=sys.stderr)
                     try:

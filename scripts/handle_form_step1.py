@@ -11,7 +11,7 @@ DEBUG_MODE = True
 
 # Assuming state_io.py is in the same directory or Python's path is configured for it.
 # For Espanso, scripts are typically in %CONFIG%/scripts/, so direct import should work.
-ESPANSO_CMD_PATH = r"C:\Users\Olivier Lambert\AppData\Local\Programs\Espanso\espanso.cmd"
+ESPANSO_CMD_PATH = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", "Espanso", "espanso.cmd")
 LAST_CONV_ID_FILENAME = "last_conversation_id.txt"
 LAST_CONV_ID_FILEPATH = os.path.join(CONFIG_DIR, LAST_CONV_ID_FILENAME)
 
