@@ -10,6 +10,8 @@ This is an Espanso configuration that integrates LLM providers (OpenAI and Anthr
 - `:gpt:` - Multi-step AI task assistant with conversation history
 - `:support:` - Customer support response generator
 
+Plus a standalone push-to-talk dictation daemon (not an Espanso trigger, since Espanso has no hold/release hotkeys): hold F8 to record, release to transcribe and paste. F8 is swallowed system-wide while the daemon runs.
+
 ## Architecture
 
 ### Directory Structure
@@ -36,6 +38,11 @@ This is an Espanso configuration that integrates LLM providers (OpenAI and Anthr
 - `preferences_manager.py` - Saves/loads user form preferences
 - `handle_form_step1.py` / `handle_form_step2.py` - Multi-step form handlers
 - `list_*.py` - Scripts that output dropdown options for Espanso forms
+- `push_to_talk.py` - Dictation daemon: global F8 hook (pynput `win32_event_filter` + `suppress_event`, so apps never receive F8), click-through overlay, pastes via clipboard + Ctrl+V. Launched at login by `Startup\espanso_push_to_talk.lnk` (`.venv\Scripts\pythonw.exe`); single instance via named mutex
+- `next_hotkey_state.py` - Pure hold/tap/cancel state machine (tap < 0.4s or another key while held = discard)
+- `record_audio.py` - Mic capture to 16 kHz mono WAV (sounddevice)
+- `transcribe_audio.py` - xAI STT (`grok-voice-transcribe-2.0`) via shush `xai` provider; `STT_KEYTERMS` biases spelling
+- `clean_transcript.py` - Cleanup pass using the `speech_to_text_editor` task, same language as the transcript
 
 ### Data Flow
 
@@ -63,6 +70,13 @@ pip install -r requirements.txt
 # Test a script directly
 python scripts/action_reader.py list_actions
 python scripts/action_reader.py get_task "Speech-to-Text Editor"
+
+# Unit tests (stdlib unittest; tests/__init__.py puts scripts/ on sys.path)
+.venv/Scripts/python.exe -m unittest discover -s tests -t .
+
+# Restart push-to-talk after editing its scripts
+Get-CimInstance Win32_Process -Filter "Name='pythonw.exe'" | ? CommandLine -like '*push_to_talk*' | % { Stop-Process -Id $_.ProcessId }
+Start-Process "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Startup\espanso_push_to_talk.lnk"
 
 # Restart Espanso after changes
 espanso restart

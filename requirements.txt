@@ -3,6 +3,8 @@ customtkinter
 openai
 Pillow
 pyautogui
+pynput
 pyperclip
 python-dotenv
-requests 
+requests
+sounddevice

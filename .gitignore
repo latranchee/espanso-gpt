@@ -10,7 +10,7 @@ gpt_tools/faq/*.md
 gpt_tools/context/*.json
 .cursor/
 .vscode/
-scripts/__pycache__/
+__pycache__/
 last_conversation_id.txt
 logs/
 
