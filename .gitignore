@@ -17,3 +17,4 @@ logs/
 # Espanso package files and user-specific data
 *.yml.bak
 match/user/ 
+tmpclaude-*

@@ -83,7 +83,7 @@ def show_loading_popup_in_thread():
 sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf8')
 
 # Default model for customer support
-DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+DEFAULT_MODEL = "gpt-6-luna"
 
 if __name__ == "__main__":
     # Start loading popup

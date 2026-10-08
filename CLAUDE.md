@@ -70,14 +70,14 @@ espanso restart
 
 ## Environment Setup
 
-Create `scripts/.env` with:
+API keys are not stored here. `llm_client.py` routes every call through the shush proxy (`http://127.0.0.1:8765/openai_espanso`, `/anthropic`), which injects the key from the shush vault. Vault secrets:
 
-```
-OPENAI_API_KEY=your_openai_key_here
-ANTHROPIC_API_KEY=your_anthropic_key_here
-```
+- `oai_espanso` (OpenAI, mapped by the `openai_espanso` provider in shush `proxy.json`): `shush set oai_espanso`
+- `anthropic_api_key` (built-in `anthropic` provider), only needed for `claude-*` models: `shush set anthropic_api_key`
 
-The default model is `claude-haiku-4-5-20251001` (Anthropic). To use OpenAI models, set `"model": "gpt-4o-mini"` in the action/task JSON config.
+Optional `scripts/.env`: `SHUSH_PROXY_URL` to override the proxy address.
+
+The default model is `gpt-6-luna` (OpenAI, `reasoning_effort: low`, no `temperature` since OpenAI reasoning models reject it unless effort is `none`). To use Claude, set `"model": "claude-opus-5"` in the action/task JSON config.
 
 ## coding_guidelines
 
@@ -190,7 +190,7 @@ Create `gpt_tools/actions/action_name.json` (use snake_case):
     "prompt_template": "{tone_instruction} [Your instruction] in {target_language}: \n\n\"{input_text}\"",
     "temperature": 0.6,
     "max_tokens": 2000,
-    "model": "claude-haiku-4-5-20251001"
+    "model": "gpt-6-luna"
 }
 ```
 
@@ -207,7 +207,7 @@ Create `gpt_tools/tasks/task_name.json` (use snake_case):
     "system_message_template": "You are... {language_instruction}",
     "temperature": 0.3,
     "max_tokens": 2000,
-    "model": "claude-haiku-4-5-20251001"
+    "model": "gpt-6-luna"
 }
 ```
 

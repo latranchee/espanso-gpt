@@ -17,7 +17,7 @@ DEFAULT_ACTION_SCHEMA = {
     "prompt_template": "Process the following text in {target_language}: \n\n\"{input_text}\"",
     "temperature": 0.6,
     "max_tokens": 2000,
-    "model": "claude-haiku-4-5-20251001"
+    "model": "gpt-6-luna"
 }
 
 DEFAULT_TASK_SCHEMA = {
@@ -29,7 +29,7 @@ DEFAULT_TASK_SCHEMA = {
     "description": "No description provided.",
     "temperature": 0.3,
     "max_tokens": 2000,
-    "model": "claude-haiku-4-5-20251001"
+    "model": "gpt-6-luna"
 }
 
 def ensure_directories():

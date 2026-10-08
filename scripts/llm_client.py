@@ -18,32 +18,44 @@ import logger
 # Load environment variables from .env in the scripts directory
 load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
+# API keys live in the shush vault; its localhost proxy strips client credential
+# headers and injects the real key, so the SDKs only need a non-empty placeholder.
+SHUSH_PROXY_URL = os.getenv("SHUSH_PROXY_URL", "http://127.0.0.1:8765").rstrip("/")
+SHUSH_PLACEHOLDER_KEY = "injected-by-shush-proxy"
+SHUSH_OPENAI_PROVIDER = "openai_espanso"
+
+# These older Claude models still take temperature; newer ones reject it with a 400.
+SAMPLING_PARAM_MODEL_PREFIXES = ("claude-3", "claude-haiku-4-5", "claude-sonnet-4-5", "claude-opus-4-5")
+REFUSAL_FALLBACK_MODEL_PREFIXES = ("claude-opus-5", "claude-fable")
+REFUSAL_FALLBACK_BETA = "server-side-fallback-2026-07-01"
+# Newer models think by default and max_tokens caps thinking plus the answer.
+THINKING_MIN_MAX_TOKENS = 16000
+THINKING_EFFORT = "low"
+# OpenAI reasoning models reject temperature unless reasoning_effort is "none".
+OPENAI_REASONING_MODEL_PREFIXES = ("gpt-5", "gpt-6", "o1", "o3", "o4")
+
 # Lazy-loaded clients to avoid import errors if one SDK is missing
 _openai_client = None
 _anthropic_client = None
 
 
 def _get_openai_client():
-    """Lazily initialize and return the OpenAI client."""
+    """Lazily initialize and return the OpenAI client (routed through shush)."""
     global _openai_client
     if _openai_client is None:
         from openai import OpenAI
-        api_key = os.getenv("OPENAI_API_KEY")
-        if not api_key:
-            raise ValueError("OPENAI_API_KEY not found in environment")
-        _openai_client = OpenAI(api_key=api_key)
+        _openai_client = OpenAI(
+            base_url=f"{SHUSH_PROXY_URL}/{SHUSH_OPENAI_PROVIDER}/v1", api_key=SHUSH_PLACEHOLDER_KEY
+        )
     return _openai_client
 
 
 def _get_anthropic_client():
-    """Lazily initialize and return the Anthropic client."""
+    """Lazily initialize and return the Anthropic client (routed through shush)."""
     global _anthropic_client
     if _anthropic_client is None:
         from anthropic import Anthropic
-        api_key = os.getenv("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise ValueError("ANTHROPIC_API_KEY not found in environment")
-        _anthropic_client = Anthropic(api_key=api_key)
+        _anthropic_client = Anthropic(base_url=f"{SHUSH_PROXY_URL}/anthropic", api_key=SHUSH_PLACEHOLDER_KEY)
     return _anthropic_client
 
 
@@ -133,13 +145,27 @@ def _call_openai(
 ) -> str:
     """Make an OpenAI API call."""
     client = _get_openai_client()
-    response = client.chat.completions.create(
-        model=model,
-        messages=messages,
-        temperature=temperature,
-        max_tokens=max_tokens
-    )
+    response = client.chat.completions.create(**_build_openai_args(model, messages, temperature, max_tokens))
     return response.choices[0].message.content.strip()
+
+
+def _build_openai_args(
+    model: str,
+    messages: list[dict],
+    temperature: float,
+    max_tokens: int
+) -> dict[str, Any]:
+    """Build request arguments matching what the target OpenAI model accepts."""
+    api_args: dict[str, Any] = {"model": model, "messages": messages}
+
+    if model.startswith(OPENAI_REASONING_MODEL_PREFIXES):
+        api_args["max_completion_tokens"] = max(max_tokens, THINKING_MIN_MAX_TOKENS)
+        api_args["reasoning_effort"] = THINKING_EFFORT
+    else:
+        api_args["max_completion_tokens"] = max_tokens
+        api_args["temperature"] = temperature
+
+    return api_args
 
 
 def _call_anthropic(
@@ -156,22 +182,46 @@ def _call_anthropic(
     if system_message is None:
         system_message, messages = _extract_system_message(messages)
 
-    # Convert messages to Anthropic format
-    anthropic_messages = _convert_messages_for_anthropic(messages)
+    api_args = _build_anthropic_args(
+        model, _convert_messages_for_anthropic(messages), temperature, max_tokens, system_message
+    )
+    response = client.beta.messages.create(**api_args)
+    return _extract_anthropic_text(response)
 
-    # Build API call arguments
-    api_args: dict[str, Any] = {
-        "model": model,
-        "messages": anthropic_messages,
-        "temperature": temperature,
-        "max_tokens": max_tokens
-    }
+
+def _build_anthropic_args(
+    model: str,
+    messages: list[dict],
+    temperature: float,
+    max_tokens: int,
+    system_message: str | None
+) -> dict[str, Any]:
+    """Build request arguments matching what the target Claude model accepts."""
+    api_args: dict[str, Any] = {"model": model, "messages": messages}
+
+    if model.startswith(SAMPLING_PARAM_MODEL_PREFIXES):
+        api_args["temperature"] = temperature
+        api_args["max_tokens"] = max_tokens
+    else:
+        api_args["max_tokens"] = max(max_tokens, THINKING_MIN_MAX_TOKENS)
+        api_args["output_config"] = {"effort": THINKING_EFFORT}
+
+    if model.startswith(REFUSAL_FALLBACK_MODEL_PREFIXES):
+        api_args["betas"] = [REFUSAL_FALLBACK_BETA]
+        api_args["extra_body"] = {"fallbacks": "default"}
 
     if system_message:
         api_args["system"] = system_message
 
-    response = client.messages.create(**api_args)
-    return response.content[0].text.strip()
+    return api_args
+
+
+def _extract_anthropic_text(response: Any) -> str:
+    """Return the visible text, skipping thinking/fallback blocks; raise on refusal."""
+    if response.stop_reason == "refusal":
+        category = getattr(getattr(response, "stop_details", None), "category", None)
+        raise RuntimeError(f"Claude declined the request (category: {category})")
+    return "".join(block.text for block in response.content if block.type == "text").strip()
 
 
 def create_chat_completion(
@@ -189,7 +239,7 @@ def create_chat_completion(
     - gpt-*, o1-* -> OpenAI
 
     Args:
-        model: The model identifier (e.g., "claude-haiku-4-5-20251001", "gpt-4o-mini")
+        model: The model identifier (e.g., "claude-opus-5", "gpt-4o-mini")
         messages: List of message dicts with "role" and "content" keys.
                   For images, use OpenAI format - will be converted for Anthropic.
         temperature: Sampling temperature (0.0 to 1.0)

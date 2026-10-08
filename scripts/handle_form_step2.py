@@ -8,16 +8,6 @@ ESPANSO_CMD_PATH = os.path.join(os.environ.get("LOCALAPPDATA", ""), "Programs", 
 
 def main():
     debug_file_target = os.path.join(os.path.expanduser("~"), "espanso_debug_paths.txt")
-    
-    # Log all environment variables at the start of main when run by Espanso
-    try:
-        with open(debug_file_target, "a", encoding="utf-8") as f_debug: # Append for step 2
-            f_debug.write("\n--- handle_form_step2.py: ALL ENVIRONMENT VARIABLES ---\n")
-            for key, value in os.environ.items():
-                f_debug.write(f"{key}=>{value}\n")
-            f_debug.write("--- END ENVIRONMENT VARIABLES ---\n\n")
-    except Exception as e_env_log:
-        print(f"CRITICAL DEBUG ERROR in handle_form_step2: Could not write env_log: {e_env_log}", file=sys.stderr)
 
     current_state = load_state()
     if not current_state:

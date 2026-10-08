@@ -24,7 +24,7 @@ if sys.stdout.encoding != 'utf-8':
     sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
 
 # Default model - will be overridden by task config if available
-DEFAULT_MODEL = "claude-haiku-4-5-20251001"
+DEFAULT_MODEL = "gpt-6-luna"
 current_model = DEFAULT_MODEL  # Global to track current model for ask_gpt
 
 if DEBUG_MODE:

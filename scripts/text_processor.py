@@ -191,7 +191,7 @@ def get_modified_text(action_name: str, tone_filename_base: str, input_text: str
         print(f"DEBUG text_processor: System message for AI: {system_message_content}", file=sys.stderr)
 
     # Get model parameters from action config
-    model = action_config.get("model", "claude-haiku-4-5-20251001")
+    model = action_config.get("model", "gpt-6-luna")
     max_tokens = action_config.get("max_tokens", 2000)
     temperature = action_config.get("temperature", 0.6)
 

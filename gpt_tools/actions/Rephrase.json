@@ -5,5 +5,5 @@
     "prompt_template": "Rephrase the following text in {target_language}, follow these guidelines {tone_instruction}. The input was taken through STT, so chunk text in readable paragraphs. IMPORTANT: DO NOT PREFACE OR APPEND ANYTHING TO THE REPHRASING, input_text: \n\n\"{input_text}\"",
     "temperature": 0.6,
     "max_tokens": 2000,
-    "model": "claude-haiku-4-5-20251001"
+    "model": "gpt-6-luna"
 }

@@ -18,16 +18,11 @@ LAST_CONV_ID_FILEPATH = os.path.join(CONFIG_DIR, LAST_CONV_ID_FILENAME)
 def main():
     debug_file_target = os.path.join(os.path.expanduser("~"), "espanso_debug_paths.txt")
     
-    # Log all environment variables at the start of main when run by Espanso
     try:
         with open(debug_file_target, "w", encoding="utf-8") as f_debug: # 'w' to overwrite for this new run
-            f_debug.write("--- handle_form_step1.py: ALL ENVIRONMENT VARIABLES ---\n")
-            for key, value in os.environ.items():
-                f_debug.write(f"{key}=>{value}\n")
-            f_debug.write("--- END ENVIRONMENT VARIABLES ---\n\n")
-    except Exception as e_env_log:
-        # Fallback if we can't even write the env log
-        print(f"CRITICAL DEBUG ERROR: Could not write env_log to {debug_file_target}: {e_env_log}", file=sys.stderr)
+            f_debug.write("--- handle_form_step1.py: new run ---\n")
+    except Exception as e_debug_log:
+        print(f"CRITICAL DEBUG ERROR: Could not write debug log to {debug_file_target}: {e_debug_log}", file=sys.stderr)
 
     # Clear previous state and log it
     try:
