@@ -141,11 +141,13 @@ def _call_openai(
     model: str,
     messages: list[dict],
     temperature: float,
-    max_tokens: int
+    max_tokens: int,
+    reasoning_effort: str | None = None
 ) -> str:
     """Make an OpenAI API call."""
     client = _get_openai_client()
-    response = client.chat.completions.create(**_build_openai_args(model, messages, temperature, max_tokens))
+    api_args = _build_openai_args(model, messages, temperature, max_tokens, reasoning_effort)
+    response = client.chat.completions.create(**api_args)
     return response.choices[0].message.content.strip()
 
 
@@ -153,14 +155,18 @@ def _build_openai_args(
     model: str,
     messages: list[dict],
     temperature: float,
-    max_tokens: int
+    max_tokens: int,
+    reasoning_effort: str | None = None
 ) -> dict[str, Any]:
     """Build request arguments matching what the target OpenAI model accepts."""
     api_args: dict[str, Any] = {"model": model, "messages": messages}
 
     if model.startswith(OPENAI_REASONING_MODEL_PREFIXES):
+        effort = reasoning_effort or THINKING_EFFORT
         api_args["max_completion_tokens"] = max(max_tokens, THINKING_MIN_MAX_TOKENS)
-        api_args["reasoning_effort"] = THINKING_EFFORT
+        api_args["reasoning_effort"] = effort
+        if effort == "none":
+            api_args["temperature"] = temperature
     else:
         api_args["max_completion_tokens"] = max_tokens
         api_args["temperature"] = temperature
@@ -229,7 +235,8 @@ def create_chat_completion(
     messages: list[dict],
     temperature: float = 0.6,
     max_tokens: int = 2000,
-    system_message: str | None = None
+    system_message: str | None = None,
+    reasoning_effort: str | None = None
 ) -> str:
     """
     Create a chat completion using the appropriate provider.
@@ -245,6 +252,7 @@ def create_chat_completion(
         temperature: Sampling temperature (0.0 to 1.0)
         max_tokens: Maximum tokens in response
         system_message: Optional system message (for Anthropic, passed separately)
+        reasoning_effort: OpenAI reasoning effort override; "none" re-enables temperature
 
     Returns:
         The assistant's response text.
@@ -253,7 +261,7 @@ def create_chat_completion(
         ValueError: If provider cannot be detected or API key is missing.
     """
     # Initialize logger on first call
-    logger.init_logger("llm_client")
+    logger.ensure_logger("llm_client")
 
     provider = _detect_provider(model)
 
@@ -264,7 +272,7 @@ def create_chat_completion(
 
     try:
         if provider == "openai":
-            result = _call_openai(model, messages, temperature, max_tokens)
+            result = _call_openai(model, messages, temperature, max_tokens, reasoning_effort)
         else:  # anthropic
             result = _call_anthropic(model, messages, temperature, max_tokens, system_message)
 

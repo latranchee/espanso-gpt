@@ -95,6 +95,13 @@ def init_logger(
         _log_file = open(log_path, "w", encoding="utf-8")
 
 
+def ensure_logger(module_name: str) -> None:
+    # Re-initializing closes the active file and archives the target, which breaks a long-running
+    # process (its own log is swapped out mid-write) and fails if another process holds the file.
+    if _log_file is None:
+        init_logger(module_name)
+
+
 def _write_log(level: LogLevel, message: str) -> None:
     """Write a log entry if level meets threshold."""
     if level < _log_level:
