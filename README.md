@@ -1,15 +1,16 @@
 # Espanso GPT
 
-A powerful Espanso configuration with GPT-powered text enhancements, emoji packs, utilities, and productivity tools.
+An Espanso configuration for Windows that brings AI text tools and push-to-talk dictation to any app.
 
 ## Features
 
-- **Multi-step AI Task Form**: Configure AI tasks with customizable parameters
-- **Text Transformation**: Rephrase, expand, fix grammar, or translate text with a simple shortcut
-- **Custom GPT Prompts**: Easily create and manage your own GPT prompts
-- **Context-Aware AI**: The system will ask for additional information when needed
-- **JSON Configuration**: Easily add or modify AI actions and tasks without coding
-- **FAQ Integration**: Provide context-specific information to guide AI responses
+- **Multi-step AI Task Form** (`:gpt:`): configure AI tasks with customizable parameters and conversation history
+- **Text Transformation** (`:rephrase:`): rephrase, expand, fix grammar, or translate text in a chosen tone
+- **Customer Support Replies** (`:support:`): draft answers that follow your own FAQ files
+- **F8 Dictation**: tap F8 and speak. Your words show live in a bubble next to the mouse, an AI pass cleans them up, and one click pastes the result into any text field
+- **Context-Aware AI**: the system asks for more information when it needs it
+- **JSON Configuration**: add or modify AI actions and tasks without coding
+- **No API keys on disk**: keys stay in the [shush](https://github.com/latranchee/shush) vault, and the scripts call a local proxy that adds them
 
 ## Screenshots
 
@@ -27,58 +28,82 @@ A powerful Espanso configuration with GPT-powered text enhancements, emoji packs
 
 ![AI Task Form](https://github.com/latranchee/espanso-gpt/raw/master/screenshots/context.jpg)
 
-## Setup Instructions
+## Requirements
+
+- Windows 10 (version 1703 or later) or Windows 11
+- [Espanso](https://espanso.org/install/), installed for your user (the default)
+- Python 3.10 or newer from [python.org](https://www.python.org/downloads/) (tested on 3.12 and 3.14)
+- [shush](https://github.com/latranchee/shush), which holds the API keys
+- An OpenAI API key that can use `gpt-6-luna`
+- For dictation only: an xAI API key (speech-to-text) and a microphone
+
+## Setup
 
 ### 1. Install Espanso
 
-First, install Espanso by following the instructions at [espanso.org](https://espanso.org/install/).
+Follow [espanso.org/install](https://espanso.org/install/). Keep the default per-user install location: the `:gpt:` form calls `%LOCALAPPDATA%\Programs\Espanso\espanso.cmd`.
 
-### 2. Clone this Repository
+### 2. Set Up shush and Your API Keys
 
-```bash
-git clone https://github.com/latranchee/espanso-gpt.git
-cd espanso-gpt
+API keys never live in this repo or in a `.env` file. Every AI call goes to the local shush proxy (`http://127.0.0.1:8765`), which adds the key from the shush vault.
+
+1. Install shush by following its README: clone it and add its folder to your `PATH`.
+2. Add these two providers under `"providers"` in shush's `proxy.json`, next to `secret_manager.ps1` (create the file if it doesn't exist):
+
+   ```json
+   {
+     "providers": {
+       "openai_espanso": { "secret": "oai_espanso", "auth": "bearer", "base_url": "https://api.openai.com", "max_body_bytes": 26214400 },
+       "xai": { "secret": "xai", "auth": "bearer", "base_url": "https://api.x.ai" }
+     }
+   }
+   ```
+
+3. Store the keys. Each command prompts for the value:
+
+   ```powershell
+   shush set oai_espanso
+   shush set xai          # dictation only
+   ```
+
+4. Start the proxy and leave it running:
+
+   ```powershell
+   shush proxy start
+   ```
+
+   To start it with Windows instead, see the service mode in shush's README (`install_proxy_service.ps1`).
+
+### 3. Clone This Repository as Your Espanso Config Folder
+
+This repo *is* the Espanso config folder (`config/`, `match/`). Stop Espanso, move the existing folder aside, and clone in its place:
+
+```powershell
+espanso stop
+Rename-Item "$env:APPDATA\espanso" espanso.bak
+git clone https://github.com/latranchee/espanso-gpt.git "$env:APPDATA\espanso"
 ```
 
-### 3. Set Up Python Environment
+Copy anything you want to keep from `espanso.bak\match` into the new `match` folder.
 
-```bash
-# Create and activate a virtual environment (optional but recommended)
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+### 4. Run the Installer
 
-# Install dependencies
-pip install -r requirements.txt
+```powershell
+cd "$env:APPDATA\espanso"
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 ```
 
-### 4. Create an .env File
+The installer:
 
-Create a file named `.env` in the `scripts` directory with the following content:
+- checks that the repo is in Espanso's config folder and that Espanso is installed
+- creates the `.venv` folder the triggers run from and installs `requirements.txt`
+- checks that the shush proxy is running and that each key works, and prints exactly what to fix if not
+- checks for a microphone, adds a Startup shortcut for F8 dictation, and starts it
+- restarts Espanso
 
-```
-OPENAI_API_KEY=your_openai_api_key_here
-```
+Run it again after fixing anything it reports, and after each `git pull`. To skip dictation (no Startup shortcut, no xAI key needed), add `-SkipDictation`.
 
-Replace `your_openai_api_key_here` with your actual OpenAI API key.
-
-### 5. Configure Espanso
-
-Copy the contents of this repository to your Espanso configuration directory:
-
-- Windows: `%APPDATA%\espanso`
-- macOS: `~/Library/Application Support/espanso`
-- Linux: `~/.config/espanso`
-
-### 6. Restart Espanso
-
-```bash
-espanso restart
-```
-
-**Important Note on `auto_restart`:**
-Many scripts in this configuration (especially the `:gpt:` task assistant) save conversation history and temporary state files within the `gpt_tools/` subdirectory. If Espanso's `auto_restart` feature is enabled (which it might be by default), these file operations can trigger frequent and unwanted Espanso restarts, interrupting your workflow.
-
-It is **highly recommended** to set `auto_restart: false` in your main Espanso configuration file (usually `config/default.yml` located in your Espanso config directory). With `auto_restart: false`, you will need to manually run `espanso restart` only when you make intentional changes to your Espanso configuration files (e.g., editing `.yml` match files or Python scripts).
+**About `auto_restart`:** many scripts (especially the `:gpt:` task assistant) save conversation history and state files under `gpt_tools/`. With Espanso's `auto_restart` on, each save would restart Espanso and interrupt you, so `config/default.yml` sets `auto_restart: false`. After you edit match files or scripts, run `espanso restart` yourself.
 
 ## Usage
 
@@ -103,6 +128,27 @@ Type `:rephrase:` to open the text transformation menu where you can:
 - Fix grammar
 - Translate between languages
 
+### Customer Support Replies
+
+Type `:support:` to draft a reply to a customer, using one of your FAQ files as the source of truth (see [FAQ System](#faq-system)).
+
+### Dictation (F8)
+
+The installer's Startup shortcut keeps this running in the background from login.
+
+1. Tap **F8** and speak. Your words appear live in a bubble next to the mouse pointer; nothing is typed into the app yet.
+2. Tap **F8** again to stop. A soft tick means `gpt-6-luna` is cleaning up the text: punctuation, grammar, filler words, in the language you spoke. A bell means it's ready, usually within 1 to 3 seconds.
+3. Click inside any text field. The text is pasted where you clicked, and it also stays on the clipboard. If you click before the bell, it pastes as soon as the text is ready.
+
+More:
+
+- Hold F8 instead of tapping to talk only while the key is down.
+- Tap F8 again before pasting to add more to the same bubble.
+- **Esc** dismisses the bubble.
+- Hands-free mode stops by itself after 60 seconds without speech.
+- While dictation runs, F8 never reaches other apps.
+- If a name keeps coming out misspelled, add it to `STT_KEYTERMS` in `scripts/stream_transcription.py`.
+
 ## Customization
 
 You can customize triggers and add your own shortcuts by modifying the YAML files in the `match` directory.
@@ -117,41 +163,45 @@ The `gpt_tools/actions/` directory contains JSON files defining text transformat
 
 ```json
 {
-    "name": "Rephrase",
+    "name": "rephrase",
+    "display_name": "Rephrase",
     "requires_second_form": false,
-    "prompt_template": "{tone_instruction} Rephrase the following text in {target_language}: \n\n\"{input_text}\"",
+    "prompt_template": "Rephrase the following text in {target_language}, follow these guidelines {tone_instruction}: \n\n\"{input_text}\"",
     "temperature": 0.6,
     "max_tokens": 2000,
-    "model": "gpt-4o-mini"
+    "model": "gpt-6-luna"
 }
 ```
 
 #### Key Fields in Action JSON Files
 
-- `name`: Display name of the action
+- `name`: Internal name, the same as the file name without `.json`
+- `display_name`: Name shown in the dropdown (falls back to the file name)
 - `requires_second_form`: Whether this action needs additional input (usually false)
 - `prompt_template`: Template for the AI prompt with variables:
   - `{tone_instruction}`: Loaded from tone files
   - `{target_language}`: Selected language
   - `{input_text}`: The text to transform
-- `temperature`: Controls randomness (0.0-1.0)
 - `max_tokens`: Maximum response length
-- `model`: OpenAI model to use
+- `model`: `gpt-6-luna` by default. A `claude-*` model works too, once you add your Anthropic key with `shush set anthropic_api_key`
+- `reasoning_effort` (optional): how much `gpt-6-luna` thinks before answering: `none`, `low` (the default), `medium`, `high`, or `xhigh`
+- `temperature`: Controls randomness (0.0-1.0). Reasoning models like `gpt-6-luna` only use it when `reasoning_effort` is `none`
 
 #### Adding a New Action
 
-To add a new action, create a JSON file in `gpt_tools/actions/` with the appropriate fields. The file name (without .json) becomes the action name in the dropdown.
+To add a new action, create a JSON file in `gpt_tools/actions/` with the appropriate fields, using a snake_case file name.
 
-Example (`Summarize.json`):
+Example (`summarize.json`):
 
 ```json
 {
-    "name": "Summarize",
+    "name": "summarize",
+    "display_name": "Summarize",
     "requires_second_form": false,
     "prompt_template": "{tone_instruction} Summarize the following text in {target_language}: \n\n\"{input_text}\"",
     "temperature": 0.4,
     "max_tokens": 1500,
-    "model": "gpt-4o-mini"
+    "model": "gpt-6-luna"
 }
 ```
 
@@ -161,19 +211,21 @@ The `gpt_tools/tasks/` directory contains JSON files defining the AI personas av
 
 ```json
 {
-    "name": "Speech-to-Text Editor",
+    "name": "speech_to_text_editor",
+    "display_name": "Speech-to-Text Editor",
     "requires_second_form": false,
     "second_form_fields": [],
     "system_message_template": "You are a meticulous Speech-to-Text Editor. Your primary function is to...[detailed instructions]... {language_instruction}",
     "temperature": 0.3,
     "max_tokens": 2000,
-    "model": "gpt-4o-mini"
+    "reasoning_effort": "none",
+    "model": "gpt-6-luna"
 }
 ```
 
 #### Key Fields in Task JSON Files
 
-- `name`: Display name of the task
+- `name`, `display_name`: Same as Actions
 - `requires_second_form`: Whether this task needs a second form (like Customer Support)
 - `second_form_fields`: List of additional fields needed
 - `system_message_template`: Base system prompt with variables:
@@ -181,23 +233,26 @@ The `gpt_tools/tasks/` directory contains JSON files defining the AI personas av
   - `{sentiment_instruction}`: Sentiment (for customer support)
   - `{relation_instruction}`: Relationship type (for customer support)
   - `{faq_content}`: FAQ content (if selected)
-- `temperature`, `max_tokens`, `model`: Same as Actions
+- `temperature`, `max_tokens`, `model`, `reasoning_effort`: Same as Actions
+
+The Speech-to-Text Editor task is also the prompt F8 dictation uses to clean up what you said.
 
 #### Adding a New Task
 
-To add a new task, create a JSON file in `gpt_tools/tasks/` with the appropriate fields. The file name (without .json) becomes the task name in the dropdown.
+To add a new task, create a JSON file in `gpt_tools/tasks/` with the appropriate fields, using a snake_case file name.
 
-Example (`Code_Reviewer.json`):
+Example (`code_reviewer.json`):
 
 ```json
 {
-    "name": "Code Reviewer",
+    "name": "code_reviewer",
+    "display_name": "Code Reviewer",
     "requires_second_form": false,
     "second_form_fields": [],
     "system_message_template": "You are an experienced code reviewer. Help identify issues, improve code quality, and suggest better practices. {language_instruction}",
     "temperature": 0.2,
     "max_tokens": 2500,
-    "model": "gpt-4o-mini"
+    "model": "gpt-6-luna"
 }
 ```
 
@@ -209,8 +264,10 @@ The FAQ system allows you to provide context-specific information to guide AI re
 
 1. **Create FAQ Files**: Place Markdown (.md) files in the `gpt_tools/faq/` directory
 2. **Structure**: Write Q&A style content with headers and lists as needed
-3. **Select in Forms**: When using `:gpt:` with "Customer Support Task", you can select an FAQ file
+3. **Select in Forms**: When using `:support:`, or `:gpt:` with "Customer Support Task", you can select an FAQ file
 4. **Effect**: The AI will prioritize information from the FAQ when answering related questions
+
+FAQ files often hold customer or business details, so git ignores every file in `gpt_tools/faq/` except `sample.md`. Copy yours to a new machine yourself.
 
 #### Example FAQ File (`product_returns.md`)
 
@@ -231,22 +288,28 @@ Electronics and opened media (games, music, software) cannot be returned once op
 
 ## Tone Files
 
-The `gpt_tools/tone/` directory contains text files that define different tones for text transformations:
+The `gpt_tools/tone/` directory contains text files that define different tones for text transformations, such as `friendly.txt` and `formal.txt`.
 
-- `Friendly.txt`: For warm, approachable language
-- `Formal.txt`: For professional, business-like language
-- `Conspiro.txt`: For conspiracy theorist style language (humorous)
+To add a tone, create a snake_case `.txt` file. Its first line is the name shown in the dropdown, as a header (`# Friendly`), and the rest tells the AI how to speak in that tone.
 
-To add a new tone, simply create a .txt file with instructions for the AI on how to speak in that tone.
+## Configuration
+
+Optional settings go in `scripts/.env` (see `scripts/.env.example`). It never holds API keys.
+
+- `SHUSH_PROXY_URL`: where the shush proxy listens, if not `http://127.0.0.1:8765`
 
 ## Troubleshooting
 
-- **Python Errors**: Ensure Python 3.6+ is installed and in your PATH
-- **OpenAI API Issues**: Verify your API key is correctly set in the `.env` file
+- **Something isn't working**: run `.\install.ps1` again. It checks each piece and says what to fix.
+- **AI triggers fail**: the shush proxy must be running (`shush proxy start`). Script logs are in `logs/`.
+- **Python Errors**: the triggers run the Python in this folder's `.venv`, which the installer creates. It needs Python 3.10 or newer.
 - **Form Not Appearing**: Make sure Espanso is running (`espanso status`)
-- **Unexpected Espanso Restarts**: If Espanso restarts frequently when using the `:gpt:` trigger, ensure `auto_restart: false` is set in your `config/default.yml` file (see "Important Note on `auto_restart`" in the Setup Instructions section).
+- **Unexpected Espanso Restarts**: make sure `auto_restart: false` is still set in `config/default.yml` (see "About `auto_restart`" under Setup).
 - **Invalid JSON Error**: Check JSON syntax in your custom action or task files
 - **Missing Tone/FAQ**: Ensure the files are in the correct directories with proper file extensions
+- **F8 does nothing**: the dictation daemon starts at login from the Startup shortcut. Run the installer again to restart it. Errors are in `logs/push_to_talk.log`.
+- **Dictation hears nothing**: Windows must let desktop apps use the microphone (Settings > Privacy & security > Microphone).
+- **No paste in some apps**: dictation can't paste into, or catch F8 in, apps running as administrator.
 
 ## Contributing
 

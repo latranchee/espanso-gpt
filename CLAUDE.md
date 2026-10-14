@@ -38,7 +38,7 @@ Plus a standalone push-to-talk dictation daemon (not an Espanso trigger, since E
 - `preferences_manager.py` - Saves/loads user form preferences
 - `handle_form_step1.py` / `handle_form_step2.py` - Multi-step form handlers
 - `list_*.py` - Scripts that output dropdown options for Espanso forms
-- `push_to_talk.py` - Dictation daemon: global F8 hook (pynput `win32_event_filter` + `suppress_event`, so apps never receive F8; Esc is swallowed only while the bubble is up), mouse hook for the paste click, single event-loop controller thread that owns the draft, plus the Tk thread drawing the bubble. Process is per-monitor DPI aware. Launched at login by `Startup\espanso_push_to_talk.lnk` (`.venv\Scripts\pythonw.exe`); single instance via named mutex
+- `push_to_talk.py` - Dictation daemon: global F8 hook (pynput `win32_event_filter` + `suppress_event`, so apps never receive F8; Esc is swallowed only while the bubble is up), mouse hook for the paste click, single event-loop controller thread that owns the draft, plus the Tk thread drawing the bubble. Process is per-monitor DPI aware. Launched at login by `Startup\espanso_push_to_talk.lnk` (`.venv\Scripts\pythonw.exe`, created by `install.ps1`); single instance via named mutex
 - Feedback (`describe_bubble` / `publish_feedback` in `push_to_talk.py`): bubble Listening → Finishing → Polishing → Ready; on stop a soft tick when the Luna polish starts and a bell when the text is final. No sound while listening (the mic would pick it up), after Esc or after a failure
 - `play_sound_cue.py` - Bell and tick synthesized in code (inharmonic partials, no sound files), played from memory via winsound
 - `next_hotkey_state.py` - Pure hotkey state machine: tap < 0.4s = hands-free toggle, longer hold = push-to-talk, cancel (Esc or a lost stream) waits for F8's release if it is held
@@ -75,8 +75,9 @@ Actions and tasks use JSON files with template fields:
 ## Development Commands
 
 ```bash
-# Install dependencies
-pip install -r requirements.txt
+# Set up or update this machine (re-runnable): .venv + requirements, shush key checks,
+# Startup shortcut, restart of the dictation daemon and Espanso. -SkipDictation skips the F8 parts
+powershell -ExecutionPolicy Bypass -File .\install.ps1
 
 # Test a script directly
 python scripts/action_reader.py list_actions
@@ -100,7 +101,7 @@ API keys are not stored here. `llm_client.py` routes every call through the shus
 - `oai_espanso` (OpenAI, mapped by the `openai_espanso` provider in shush `proxy.json`): `shush set oai_espanso`
 - `anthropic_api_key` (built-in `anthropic` provider), only needed for `claude-*` models: `shush set anthropic_api_key`
 
-Optional `scripts/.env`: `SHUSH_PROXY_URL` to override the proxy address.
+Optional `scripts/.env` (template: `scripts/.env.example`): `SHUSH_PROXY_URL` to override the proxy address. `install.ps1` probes each shush provider (`/openai_espanso/v1/models/gpt-6-luna`, `/xai/v1/models`) and maps shush's error codes (`PROVIDER_NOT_FOUND`, `SECRET_UNAVAILABLE`, 401, `model_not_found`) to the fix to print.
 
 The default model is `gpt-6-luna` (OpenAI, `reasoning_effort: low`, no `temperature` since OpenAI reasoning models reject it unless effort is `none`). To use Claude, set `"model": "claude-opus-5"` in the action/task JSON config.
 
