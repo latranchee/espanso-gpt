@@ -35,4 +35,5 @@ def clean_transcript(
         messages=build_cleanup_messages(transcript, config),
         temperature=config["temperature"],
         max_tokens=config["max_tokens"],
+        reasoning_effort=config.get("reasoning_effort"),
     )

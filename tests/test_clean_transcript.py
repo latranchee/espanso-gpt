@@ -41,6 +41,17 @@ class CleanTranscriptTest(unittest.TestCase):
         clean_transcript("um hello", TASK_CONFIG, complete_chat=recording_chat("Hello.", calls))
         self.assertEqual(calls[0]["model"], "gpt-6-luna")
 
+    def test_passes_task_reasoning_effort(self) -> None:
+        calls: list[dict[str, Any]] = []
+        config = {**TASK_CONFIG, "reasoning_effort": "none"}
+        clean_transcript("um hello", config, complete_chat=recording_chat("Hello.", calls))
+        self.assertEqual(calls[0]["reasoning_effort"], "none")
+
+    def test_task_without_effort_uses_client_default(self) -> None:
+        calls: list[dict[str, Any]] = []
+        clean_transcript("um hello", TASK_CONFIG, complete_chat=recording_chat("Hello.", calls))
+        self.assertIsNone(calls[0]["reasoning_effort"])
+
 
 if __name__ == "__main__":
     unittest.main()

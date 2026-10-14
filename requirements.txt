@@ -8,3 +8,4 @@ pyperclip
 python-dotenv
 requests
 sounddevice
+websockets

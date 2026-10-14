@@ -1,46 +1,35 @@
 #!/usr/bin/env python3
-import io
-import wave
-from dataclasses import dataclass
-from typing import Any
+from typing import Any, Callable
 
 import sounddevice
 
 SAMPLE_RATE_HZ = 16000
 CHANNEL_COUNT = 1
-SAMPLE_WIDTH_BYTES = 2
+# 100 ms of audio per chunk, the pacing xAI recommends for streaming STT.
+CHUNK_FRAMES = SAMPLE_RATE_HZ // 10
 
 
-@dataclass(frozen=True)
-class Recording:
-    stream: sounddevice.RawInputStream
-    chunks: list[bytes]
+def start_recording(
+    on_chunk: Callable[[bytes], None],
+    open_stream: Callable[..., Any] = sounddevice.RawInputStream
+) -> Any:
+    def forward_chunk(data: Any, frame_count: int, time_info: Any, status: Any) -> None:
+        on_chunk(bytes(data))
 
-
-def start_recording() -> Recording:
-    chunks: list[bytes] = []
-
-    def collect_chunk(data: Any, frame_count: int, time_info: Any, status: Any) -> None:
-        chunks.append(bytes(data))
-
-    stream = sounddevice.RawInputStream(
-        samplerate=SAMPLE_RATE_HZ, channels=CHANNEL_COUNT, dtype="int16", callback=collect_chunk
+    stream = open_stream(
+        samplerate=SAMPLE_RATE_HZ,
+        channels=CHANNEL_COUNT,
+        dtype="int16",
+        blocksize=CHUNK_FRAMES,
+        callback=forward_chunk,
     )
     stream.start()
-    return Recording(stream, chunks)
+    return stream
 
 
-def stop_recording(recording: Recording) -> bytes:
-    recording.stream.stop()
-    recording.stream.close()
-    return encode_wav(b"".join(recording.chunks))
-
-
-def encode_wav(pcm: bytes, sample_rate_hz: int = SAMPLE_RATE_HZ) -> bytes:
-    buffer = io.BytesIO()
-    with wave.open(buffer, "wb") as wav_file:
-        wav_file.setnchannels(CHANNEL_COUNT)
-        wav_file.setsampwidth(SAMPLE_WIDTH_BYTES)
-        wav_file.setframerate(sample_rate_hz)
-        wav_file.writeframes(pcm)
-    return buffer.getvalue()
+def stop_recording(stream: Any) -> None:
+    # Failure recovery may stop a stream twice; PortAudio must never see a closed stream.
+    if stream.closed:
+        return
+    stream.stop()
+    stream.close()

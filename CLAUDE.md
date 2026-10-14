@@ -10,7 +10,7 @@ This is an Espanso configuration that integrates LLM providers (OpenAI and Anthr
 - `:gpt:` - Multi-step AI task assistant with conversation history
 - `:support:` - Customer support response generator
 
-Plus a standalone push-to-talk dictation daemon (not an Espanso trigger, since Espanso has no hold/release hotkeys): hold F8 to record, release to transcribe and paste. F8 is swallowed system-wide while the daemon runs.
+Plus a standalone push-to-talk dictation daemon (not an Espanso trigger, since Espanso has no hold/release hotkeys): tap F8 to dictate hands-free (tap again to stop; auto-stops after 60s without speech) or hold F8 to talk. The raw words show live in a bubble next to the mouse pointer (nothing is typed into apps while speaking). Stopping runs one gpt-6-luna polish over the whole text (every time; ~1-3s), and the next left click pastes the final text where you clicked (clipboard + Ctrl+V; a click before the rewrite finishes pastes when it does). Esc dismisses the bubble. F8 is swallowed system-wide while the daemon runs.
 
 ## Architecture
 
@@ -32,17 +32,27 @@ Plus a standalone push-to-talk dictation daemon (not an Espanso trigger, since E
 - `text_processor.py` - Handles `:rephrase:` text transformations using action configs
 - `multi_form.py` - Main entry point for `:gpt:` multi-step workflow
 - `customer_support.py` - Handles `:support:` customer response generation
-- `llm_client.py` - Unified API client abstraction for OpenAI and Anthropic
+- `llm_client.py` - Unified API client abstraction for OpenAI and Anthropic (logs to `llm_client.log` unless the process already opened a log, see `logger.ensure_logger`)
 - `action_reader.py` - Loads and merges JSON configs with defaults for actions/tasks
 - `state_io.py` - JSON state persistence between form steps
 - `preferences_manager.py` - Saves/loads user form preferences
 - `handle_form_step1.py` / `handle_form_step2.py` - Multi-step form handlers
 - `list_*.py` - Scripts that output dropdown options for Espanso forms
-- `push_to_talk.py` - Dictation daemon: global F8 hook (pynput `win32_event_filter` + `suppress_event`, so apps never receive F8), click-through overlay, pastes via clipboard + Ctrl+V. Launched at login by `Startup\espanso_push_to_talk.lnk` (`.venv\Scripts\pythonw.exe`); single instance via named mutex
-- `next_hotkey_state.py` - Pure hold/tap/cancel state machine (tap < 0.4s or another key while held = discard)
-- `record_audio.py` - Mic capture to 16 kHz mono WAV (sounddevice)
-- `transcribe_audio.py` - xAI STT (`grok-voice-transcribe-2.0`) via shush `xai` provider; `STT_KEYTERMS` biases spelling
-- `clean_transcript.py` - Cleanup pass using the `speech_to_text_editor` task, same language as the transcript
+- `push_to_talk.py` - Dictation daemon: global F8 hook (pynput `win32_event_filter` + `suppress_event`, so apps never receive F8; Esc is swallowed only while the bubble is up), mouse hook for the paste click, single event-loop controller thread that owns the draft, plus the Tk thread drawing the bubble. Process is per-monitor DPI aware. Launched at login by `Startup\espanso_push_to_talk.lnk` (`.venv\Scripts\pythonw.exe`); single instance via named mutex
+- Feedback (`describe_bubble` / `publish_feedback` in `push_to_talk.py`): bubble Listening → Finishing → Polishing → Ready; on stop a soft tick when the Luna polish starts and a bell when the text is final. No sound while listening (the mic would pick it up), after Esc or after a failure
+- `play_sound_cue.py` - Bell and tick synthesized in code (inharmonic partials, no sound files), played from memory via winsound
+- `next_hotkey_state.py` - Pure hotkey state machine: tap < 0.4s = hands-free toggle, longer hold = push-to-talk, cancel (Esc or a lost stream) waits for F8's release if it is held
+- `next_dictation_draft.py` - Pure reducer: committed utterances + live (locked chunks + interim) text per stream; `polish_draft` swaps in Luna's result (only if no speech arrived meanwhile, checked by the controller)
+- `render_bubble.py` - Pure PIL rendering of the bubble (supersampled rounded body + tail, blurred shadow, Segoe UI text, animated status icon); dark/light theme follows Windows `AppsUseLightTheme`
+- `place_bubble.py` - Pure placement: tail tip just below-right of the pointer, flipping at screen edges
+- `run_bubble_ui.py` - Tk host loop (16 ms): follows the pointer, re-renders only on change or animation frame, fades in/out
+- `update_layered_window.py` - `UpdateLayeredWindow` with premultiplied BGRA (true per-pixel alpha). `WS_EX_TOPMOST` cannot be set via `SetWindowLong`, so `raise_layered_window` uses `SetWindowPos`
+- `read_screen_metrics.py` - Cursor, monitor work area and DPI scale (physical pixels)
+- `paste_text.py` - Clipboard + one atomic `SendInput` Ctrl+V batch; the dictation stays on the clipboard
+- `record_audio.py` - Mic capture, 16 kHz mono int16 in 100 ms chunks (sounddevice)
+- `stream_transcription.py` - xAI streaming STT (`wss://api.x.ai/v1/stt`, `grok-voice-transcribe-2.0`, `smart_turn`). shush cannot relay WebSockets, so it mints a 5-minute ephemeral token via the `xai` provider (`/v1/realtime/client_secrets`) and the socket goes direct. `STT_KEYTERMS` biases spelling
+- `decide_revision.py` - OpenAI Decisions API (`POST /v1/decisions`, public beta, gpt-6-luna only, ~0.2s) predicate `needs_revision` via shush `openai_espanso`. Not wired in: as a per-sentence gate it skipped fluent-but-wrong text (grammar, context), so stop now always polishes
+- `clean_transcript.py` - Polish pass using the `speech_to_text_editor` task, same language as the transcript. The task sets `reasoning_effort: none` (steady ~1.2-1.9s; `low` swung 0.8-8.6s)
 
 ### Data Flow
 
@@ -59,6 +69,7 @@ Actions and tasks use JSON files with template fields:
 
 - `prompt_template` / `system_message_template` - String templates with placeholders like `{tone_instruction}`, `{target_language}`, `{input_text}`
 - `temperature`, `max_tokens`, `model` - OpenAI API parameters
+- `reasoning_effort` (optional) - overrides the default `low` for OpenAI reasoning models; `none` also re-enables `temperature`
 - `requires_second_form` - Whether additional form input is needed
 
 ## Development Commands
